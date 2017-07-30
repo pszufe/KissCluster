@@ -1,12 +1,12 @@
 tmpname=`tempfile`
-printf ${job_envelope_base64} | base64 -d > ${tmpname}
+printf "${job_envelope_base64}" | base64 -d > ${tmpname}
 aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job_envelope.sh
 
 printf "#!/bin/bash\n\n" > ${RUN_NODE_FILE}
 printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${RUN_NODE_FILE}
 printf "REGION=${REGION}\n" >> ${RUN_NODE_FILE}
 printf "\n" >> ${RUN_NODE_FILE}
-printf ${run_node_template_base64} | base64 -d >> ${RUN_NODE_FILE}
+printf  "${run_node_template_base64}" | base64 -d >> ${RUN_NODE_FILE}
 chmod +x ${RUN_NODE_FILE}
 
 printf "\nSUCCESS!\n"
