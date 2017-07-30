@@ -29,7 +29,7 @@ S3_LOCATION=${S3}/${CLUSTERNAME}
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
 
-RUN_NODE_FILE=./run_node_${CLUSTERNAME}.sh
+CLOUD_INIT_FILE=./cloud_init_node_${CLUSTERNAME}.sh
 
 function wait4table {
     TABLENAME=$1
@@ -123,8 +123,8 @@ wait4table ${CLUSTERTABLE}
 echo Deleting S3 folder ${S3_LOCATION}/app
 res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
 
-printf "#!/bin/bash\n\n${COMMAND} \$1" > ${HOME_DIR}/.command.sh
-chmod +x ${HOME_DIR}/.command.sh
+printf "#!/bin/bash\n\n${COMMAND} \$1" > ${HOME_DIR}/job.sh
+chmod +x ${HOME_DIR}/job.sh
 
 echo "copying application data to S3" 
 aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app

@@ -2,10 +2,6 @@
 #CLUSTERNAME=mysim
 #REGION="us-east-2"
 
-sudo apt update --yes
-sudo apt install awscli jq --yes
-sudo su ubuntu
-
 set -e
 
 S3_LOCATION=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_folder.S"`
@@ -36,7 +32,7 @@ mkdir -p ${HOME_DIR}/res/
 mkdir -p ${HOME_DIR}/log/
 echo Synchronizing files...
 aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
-chmod +x ${HOME_DIR}/app/.command.sh
+chmod +x ${HOME_DIR}/app/job.sh
 chmod +x ${HOME_DIR}/app/job_envelope.sh
 
 CLUSTERDATE=`aws dynamodb --region ${REGION} get-item \

@@ -3,10 +3,9 @@
 set -e
 cp create_cluster_header.sh ../create_cluster.sh
 
-printf      "job_envelope_base64=\"`cat job_envelope.sh      | base64`\"\n"  >> ../create_cluster.sh
-printf "\n"  >> ../create_cluster.sh
-printf "run_node_template_base64=\"`cat run_node_template.sh | base64`\"\n"  >> ../create_cluster.sh
-printf "\n"  >> ../create_cluster.sh
+printf      "job_envelope_base64=\"`cat job_envelope.sh        | base64`\"\n\n"  >> ../create_cluster.sh
+printf "run_node_template_base64=\"`cat run_node_template.sh   | base64`\"\n\n"  >> ../create_cluster.sh
+printf        "cloud_init_base64=\"`cat cloud_init_template.sh | base64`\"\n\n"  >> ../create_cluster.sh
 cat create_cluster_footer.sh >> ../create_cluster.sh
 
 chmod +x ../create_cluster.sh

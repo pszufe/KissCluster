@@ -46,7 +46,7 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
 
 
 cd ${HOME_DIR}/app
-./.command.sh $JOB_ID > ${filepath_log} 2> ${filepath_error}
+./job.sh $JOB_ID > ${filepath_log} 2> ${filepath_error}
 exit_status=$?
 jobenddate=$(date '+%Y%m%dT%H%M%SZ')
 end_time=$(date +%s)
