@@ -2,11 +2,11 @@
 #CLUSTERNAME=mysim
 #REGION="us-east-2"
 
-#apt update --yes
-#apt install awscli jq --yes
-#su ubuntu
+sudo apt update --yes
+sudo apt install awscli jq --yes
+sudo su ubuntu
 
-#set -e
+set -e
 
 S3_LOCATION=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_folder.S"`
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
