@@ -7,6 +7,7 @@ printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${RUN_NODE_FILE}
 printf "REGION=${REGION}\n" >> ${RUN_NODE_FILE}
 printf "\n" >> ${RUN_NODE_FILE}
 printf ${run_node_template_base64} | base64 -d >> ${RUN_NODE_FILE}
+chmod +x ${RUN_NODE_FILE}
 
 printf "\nSUCCESS!\n"
 printf "The cluster ${CLUSTERNAME} has been successfully build!  \n"
