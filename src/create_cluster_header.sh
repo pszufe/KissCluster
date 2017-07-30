@@ -129,5 +129,5 @@ printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
 
 echo "copying application data to S3" 
 aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
-aws s3 --region ${REGION} cp ${tmpname} ${S3_LOCATION}/app/
+aws s3 --region ${REGION} cp ${tmpname} ${S3_LOCATION}/app/job.sh
 
