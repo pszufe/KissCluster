@@ -8,5 +8,5 @@ wget https://raw.githubusercontent.com/pszufe/KissCluster/master/create_cluster.
 `
 
 `
-bash create_cluster.sh
+ bash create_cluster.sh mycluster us-east-2 "bash go.sh" examples/example1/app/ s3://some-s3-path
 `
