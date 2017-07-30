@@ -12,6 +12,7 @@ aws s3 --region ${REGION} mv ${tmpname} ${S3_RUN_NODE_SCRIPT}
 
 printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
 printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
+printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
 printf "S3_RUN_NODE_SCRIPT=${S3_RUN_NODE_SCRIPT}\n\n" >> ${CLOUD_INIT_FILE}
 
 printf  "${cloud_init_base64}" | base64 -d >> ${CLOUD_INIT_FILE}
