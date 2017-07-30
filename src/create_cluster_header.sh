@@ -123,10 +123,11 @@ wait4table ${CLUSTERTABLE}
 echo Deleting S3 folder ${S3_LOCATION}/app
 res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
 
-printf "#!/bin/bash\n\n${COMMAND} \$1" > ${HOME_DIR}/job.sh
-chmod +x ${HOME_DIR}/job.sh
+
+tmpname=`tempfile`
+printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
 
 echo "copying application data to S3" 
 aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
-
+aws s3 --region ${REGION} cp ${tmpname} ${S3_LOCATION}/app/
 
