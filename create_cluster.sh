@@ -129,7 +129,7 @@ printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
 
 echo "copying application data to S3" 
 aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
-aws s3 --region ${REGION} cp ${tmpname} ${S3_LOCATION}/app/
+aws s3 --region ${REGION} cp ${tmpname} ${S3_LOCATION}/app/job.sh
 
 job_envelope_base64="IyEvYmluL2Jhc2gKCkNMVVNURVJOQU1FPSQxClJFR0lPTj0kMgpOT0RFSUQ9JDMKUzNfTE9DQVRJ
 T049JDQKSE9NRV9ESVI9JDUKQ0xVU1RFUkRBVEU9JDYKUlVOX0lEPSQ3CgpKT0JTVEFCTEU9Imtp
@@ -262,6 +262,7 @@ aws s3 --region ${REGION} mv ${tmpname} ${S3_RUN_NODE_SCRIPT}
 
 printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
 printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
+printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
 printf "S3_RUN_NODE_SCRIPT=${S3_RUN_NODE_SCRIPT}\n\n" >> ${CLOUD_INIT_FILE}
 
 printf  "${cloud_init_base64}" | base64 -d >> ${CLOUD_INIT_FILE}
