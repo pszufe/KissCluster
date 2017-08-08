@@ -270,7 +270,7 @@ printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
 printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
 printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
 printf "S3_RUN_NODE_SCRIPT=${S3_RUN_NODE_SCRIPT}\n\n" >> ${CLOUD_INIT_FILE}
-cat ${DIR}/src/clud_init_template.sh >> ${CLOUD_INIT_FILE}
+cat ${DIR}/src/cloud_init_template.sh >> ${CLOUD_INIT_FILE}
 chmod +x ${CLOUD_INIT_FILE}
 aws s3 --region ${REGION} cp ${CLOUD_INIT_FILE} ${S3_LOCATION}/cluster/
 
