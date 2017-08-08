@@ -7,26 +7,29 @@ S3_LOCATION=$4
 HOME_DIR=$5
 CLUSTERDATE=$6
 RUN_ID=$7
+QUEUE_ID=$8
+
 
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
-
+QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
 
 
 
 JOB_ID=`aws dynamodb --region ${REGION} update-item \
-    --table-name kissc_clusters \
-    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+    --table-name ${QUEUESTABLE} \
+    --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
     --update-expression "SET jobid = jobid + :incr" \
     --expression-attribute-values '{":incr":{"N":"1"}}' \
     --return-values UPDATED_NEW | jq -r ".Attributes.jobid.N"`
 
+QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
 RUN_ID_F="$(printf "%09d" $RUN_ID)"
 JOB_ID_F="$(printf "%09d" $JOB_ID)"
 NODEID_F="$(printf "%05d" $NODEID)"
 
 
-filename_log="N${NODEID_F}_R${RUN_ID_F}_J${JOB_ID_F}.log.txt"
+filename_log="N${NODEID_F}_${QUEUE_ID_F}_R${RUN_ID_F}_J${JOB_ID_F}.log.txt"
 filepath_log=${HOME_DIR}/res/${filename_log}
 
 filename_error="N${NODEID_F}_R${RUN_ID_F}_J${JOB_ID_F}.error.txt"
@@ -56,7 +59,7 @@ out_txt_size=`stat --printf="%s" ${filepath_log}`
 log_error_size=`stat --printf="%s" ${filepath_error}`
 
 #if [[ $out_txt_size -gt 256 ]]; then
-	log_txt=${log_txt}"(...)"#
+#	log_txt=${log_txt}"(...)"
 #fi
 
 #if [[ $log_error_size -gt 256 ]]; then
