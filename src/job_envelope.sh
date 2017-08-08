@@ -40,12 +40,12 @@ start_time=$(date +%s)
 
 
 res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
-    --item '{"jobid":{"N":"'${JOB_ID}'"},"nodeid":{"N":"'${NODEID}'"}, \
-			"status":{"S":"running"},\
+    --item '{"queueid":{"N":"'${QUEUE_ID}'"},"jobid":{"N":"'${JOB_ID}'"},\
+            "nodeid":{"N":"'${NODEID}'"}, "jstatus":{"S":"running"},\
             "jobstartdate":{"S":"'${jobstartdate}'"},\
-			"S3_log":{"S":"'${S3_log}/${filename_log}.gz'"},\
-			"S3_error":{"S":"'${S3_error}/${filename_error}.gz'"}}'\
-			`
+            "S3_log":{"S":"'"${filepath_log}"'"},\
+            "S3_error":{"S":"'"${filepath_error}"'"}}'\
+            `
 
 
 cd ${HOME_DIR}/app
@@ -77,14 +77,15 @@ aws s3 --region ${REGION} cp ${filepath_log}.gz ${S3_log}/
 aws s3 --region ${REGION} cp ${filepath_error}.gz ${S3_error}/
 
 res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
-    --item '{"jobid":{"N":"'${JOB_ID}'"},"nodeid":{"N":"'${NODEID}'"}, \
-			"status":{"S":"completed"},\
+    --item '{"queueid":{"N":"'${QUEUE_ID}'"},"jobid":{"N":"'${JOB_ID}'"},\
+            "nodeid":{"N":"'${NODEID}'"}, \
+            "jstatus":{"S":"completed"},\
             "jobstartdate":{"S":"'${jobstartdate}'"},\
             "jobenddate":{"S":"'${jobenddate}'"},\
-			"job_duration_s":{"N":"'${job_duration_s}'"},\
-			"exit_status":{"N":"'${exit_status}'"},\
+            "job_duration_s":{"N":"'${job_duration_s}'"},\
+            "exit_status":{"N":"'${exit_status}'"},\
             "out_txt_size":{"N":"'${out_txt_size}'"},\
             "log_error_size":{"N":"'${log_error_size}'"},\
-			"S3_log":{"S":"'${S3_log}/${filename_log}.gz'"},\
-			"S3_error":{"S":"'${S3_error}/${filename_error}.gz'"}}'\
-			`
+            "S3_log":{"S":"'"${S3_log}/${filename_log}.gz"'"},\
+            "S3_error":{"S":"'"${S3_error}/${filename_error}.gz"'"}}'\
+            `
