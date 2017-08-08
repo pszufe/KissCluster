@@ -29,6 +29,8 @@ JOB_ID_F="$(printf "%09d" $JOB_ID)"
 NODEID_F="$(printf "%05d" $NODEID)"
 
 
+echo "Running: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"
+
 filename_log="N${NODEID_F}_${QUEUE_ID_F}_R${RUN_ID_F}_J${JOB_ID_F}.log.txt"
 filepath_log=${HOME_DIR}/res/${filename_log}
 
@@ -75,7 +77,7 @@ S3_error=${S3_LOCATION}/log/std_error_${CLUSTERDATE}
 
 aws s3 --region ${REGION} cp ${filepath_log}.gz ${S3_log}/
 aws s3 --region ${REGION} cp ${filepath_error}.gz ${S3_error}/
-
+echo "Completed: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"
 res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
     --item '{"queueid":{"N":"'${QUEUE_ID}'"},"jobid":{"N":"'${JOB_ID}'"},\
             "nodeid":{"N":"'${NODEID}'"}, \
