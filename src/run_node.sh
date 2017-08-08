@@ -49,6 +49,8 @@ mkdir -p ${HOME_DIR}/app/
 mkdir -p ${HOME_DIR}/res/
 mkdir -p ${HOME_DIR}/log/
 echo Synchronizing files...
+
+echo "aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null"
 aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
 
 
@@ -56,8 +58,10 @@ aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
 
 S3_LOCATION_Q=${S3}/${CLUSTERNAME}/${QUEUE_ID_F}
 
-aws s3 --region ${REGION} cp ${S3_LOCATION_Q}/app/job.sh ${HOME_DIR}/app/job.sh > /dev/null
-aws s3 --region ${REGION} cp ${S3_LOCATION_master}/cluster/job_envelope.sh ${HOME_DIR}/app/job_envelope.sh > /dev/null
+echo "aws s3 --region ${REGION} cp ${S3_LOCATION_Q}/app/job.sh ${HOME_DIR}/app/job.sh"
+aws s3 --region ${REGION} cp ${S3_LOCATION_Q}/app/job.sh ${HOME_DIR}/app/job.sh
+echo "aws s3 --region ${REGION} cp ${S3_LOCATION_master}/cluster/job_envelope.sh ${HOME_DIR}/app/job_envelope.sh"
+aws s3 --region ${REGION} cp ${S3_LOCATION_master}/cluster/job_envelope.sh ${HOME_DIR}/app/job_envelope.sh
 
 chmod +x ${HOME_DIR}/app/job.sh
 chmod +x ${HOME_DIR}/app/job_envelope.sh

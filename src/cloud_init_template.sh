@@ -2,6 +2,8 @@
 
 sudo apt update --yes
 sudo apt install awscli jq --yes
+
+#uncomment this line when using as cloud init and do not want to run as root
 #sudo su - ubuntu
 
 aws  --region ${REGION} s3 cp ${S3_RUN_NODE_SCRIPT} /home/ubuntu/run_node_${CLUSTERNAME}.sh 
