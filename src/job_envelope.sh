@@ -7,13 +7,15 @@ S3_LOCATION=$4
 HOME_DIR=$5
 CLUSTERDATE=$6
 RUN_ID=$7
-QUEUE_ID=$8
+
 
 
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
 QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
 
+QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
+QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
 
 
 JOB_ID=`aws dynamodb --region ${REGION} update-item \
@@ -91,3 +93,4 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
             "S3_log":{"S":"'"${S3_log}/${filename_log}.gz"'"},\
             "S3_error":{"S":"'"${S3_error}/${filename_error}.gz"'"}}'\
             `
+echo "Written: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"

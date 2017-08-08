@@ -109,7 +109,7 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
 			"az":{"S":"'${az}'"},\
 			"security_groups":{"S":"'${security_groups}'"}}' `
 
-nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$NPROC bash ${HOME_DIR}/app/job_envelope.sh "${CLUSTERNAME}" "${REGION}" "${NODEID}" "${S3_LOCATION}" "${HOME_DIR}" "${CLUSTERDATE}" "${QUEUE_ID}" &>> $logfile &
+nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$NPROC bash ${HOME_DIR}/app/job_envelope.sh "${CLUSTERNAME}" "${REGION}" "${NODEID}" "${S3_LOCATION}" "${HOME_DIR}" "${CLUSTERDATE}" &>> $logfile &
 
 echo "Node ${NODEID} has been successfully started."
 echo "In order to terminate computations on this node look for the xargs process and kill it (pkill -f xargs)"
