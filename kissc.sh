@@ -3,8 +3,8 @@ set -e
 
 BASH_FILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-. BASH_FILE_DIR/config.conf
-. BASH_FILE_DIR/kissc-lib.sh
+. ${BASH_FILE_DIR}/config.conf
+. ${BASH_FILE_DIR}/kissc-lib.sh
 
 
 function basic_usage {
