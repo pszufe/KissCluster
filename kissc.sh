@@ -1,12 +1,14 @@
 #!/bin/bash
-
+set -e
 COMMAND=$1
 
 function contains {
     [[ $1 =~ (^|[[:space:]])$2($|[[:space:]]) ]] && return 0 || return 1
 }
 
-if [[ -z $COMMAND ]]; then
+
+
+if [[ -z $COMMAND ]] || ! `contains "create submit delete" $COMMAND`; then
 
    echo "usage: kissc.sh <command> [parameters] clustername@region"
    echo "region : AWS region where the cluster information will be stored (e.g. us-east-1)"
@@ -20,6 +22,18 @@ if [[ -z $COMMAND ]]; then
    exit 1
 fi
 
+
+if [[ $COMMAND = "create" ]]
+
+
+elif [[ $COMMAND = "submit" ]]
+
+
+elif [[ $COMMAND = "delete" ]]
+
+fi
+
+exit 0
 
 function usage {
     ERROR=$1
@@ -55,7 +69,6 @@ function checkinstall {
 checkinstall jq
 checkinstall awscli
 
-set -e
 
 HELP=0
 ERROR=0
