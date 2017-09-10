@@ -8,11 +8,13 @@ function contains {
 
 if [[ -z $COMMAND ]]; then
 
-   echo "usage: kissc.sh <command> [parameters] clustername@aws-region"
+   echo "usage: kissc.sh <command> [parameters] clustername@region"
+   echo "region : AWS region where the cluster information will be stored (e.g. us-east-1)"
    echo "KISSC: error: the following argument is required: command"
    echo "The following commands are available:"
    echo "create : Creates a cluster in the given region with the given name. If the cluster already exists its data will be reset."
    echo "submit : Submits a job to the cluster"
+   echo "delete : Deletes a cluster"
    echo "Run kissc.sh <command> help to see help for a specific command"
    echo "kissc: error: the following arguments are required: command"
    exit 1
@@ -22,9 +24,8 @@ fi
 function usage {
     ERROR=$1
     echo "Usage:"
-    echo "kissc.sh --region region --command command --folder folder --s3_bucket s3_bucket clustername"
+    echo "kissc.sh --command command --folder folder --s3_bucket s3_bucket clustername"
     echo ""
-    echo "--region region - AWS region where the computations will be carried out (optional parameter, if not given defaults to us-east-1)"
     echo "--command - command to be executed on each node. \
         Note that an additional parameter jobid will be added \
         to each command executed on the clustername. \
