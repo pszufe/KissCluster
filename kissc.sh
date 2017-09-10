@@ -6,39 +6,45 @@ function contains {
     [[ $1 =~ (^|[[:space:]])$2($|[[:space:]]) ]] && return 0 || return 1
 }
 
-
-
-if [[ -z $COMMAND ]] || ! `contains "create submit delete" $COMMAND`; then
-
+function basic_usage {
    echo "usage: kissc.sh <command> [parameters] clustername@region"
    echo "region : AWS region where the cluster information will be stored (e.g. us-east-1)"
-   echo "KISSC: error: the following argument is required: command"
+   echo "kissc: error: $2"
    echo "The following commands are available:"
    echo "create : Creates a cluster in the given region with the given name. If the cluster already exists its data will be reset."
    echo "submit : Submits a job to the cluster"
    echo "delete : Deletes a cluster"
    echo "Run kissc.sh <command> help to see help for a specific command"
-   echo "kissc: error: the following arguments are required: command"
-   exit 1
-fi
+   echo "kissc: error: $2"
+   exit $1
+}
 
-
-if [[ $COMMAND = "create" ]]
-
-
-elif [[ $COMMAND = "submit" ]]
-
-
-elif [[ $COMMAND = "delete" ]]
-
-fi
-
-exit 0
-
-function usage {
-    ERROR=$1
+function usage_create {
     echo "Usage:"
-    echo "kissc.sh --command command --folder folder --s3_bucket s3_bucket clustername"
+    echo "kissc.sh create [parameters] clustername@region"
+    echo ""
+    echo "--passwordless_ssh - key name that will be used to configure passwordless ssh across cluster nodes. \
+        Note that an additional parameter jobid will be added \
+        to each command executed on the clustername. \
+        The command will be executed on nodes within the folder given as the next parameter"
+    echo "clustername@region - name and region of your cluster"
+    exit $1
+}
+
+function usage_delete {
+    echo "Usage:"
+    echo "kissc.sh delete clustername@region"
+    echo "Deletes the given cluster information."
+    echo "Note that the function call does try to terminate the nodes in any way!"
+	echo "If you run your nodes in AWS you should try to terminate them manually"	     
+    echo "clustername@region - name and region of your cluster"
+    exit $1
+}
+
+
+function usage_submit {
+    echo "Usage:"
+    echo "kissc.sh submit --command command --folder folder --s3_bucket s3_bucket [other parameters] clustername@region"
     echo ""
     echo "--command - command to be executed on each node. \
         Note that an additional parameter jobid will be added \
@@ -46,34 +52,35 @@ function usage {
         The command will be executed on nodes within the folder given as the next parameter"
     echo "--folder folder - a local path  that contains all files needed to execute the command. \
         The contents of the folder will be copied to each cluster node"
-    echo "--min_jobid minjobid - starting job id - an optional parameter, requires command and folder parameters"
-	echo "--max_jobid maxjobid - ending job id - an optional parameter, requires command and folder parameters"
 	echo "--s3_bucket s3_bucket - name of an AWS S3 bucket (e.g. s3://mybucketname/) that will be used \
         to store cluster data and will be used for result collection (mandatory parameter)"
+	echo "--min_jobid minjobid - starting job id - an optional parameter, requires command and folder parameters"
+	echo "--max_jobid maxjobid - ending job id - an optional parameter, requires command and folder parameters"
 	echo "--queue_name queue_name a label that will describe a particular queue created if the command parameter is given (optional)"
-    echo "clustername - name of your cluster (mandatory parameter)"
-    echo "Note: the parameters command and folder are optional, but if one is present the other also should be given."
-    exit $ERROR
+    echo "clustername@region - name and region of your cluster"
+    exit $1
 }
 
-function checkinstall {
-  PKG_NAME=$1
-  PKG_OK=$(dpkg-query -W --showformat='${Status}\n' ${PKG_NAME}|grep "install ok installed")
-  if [ "" == "$PKG_OK" ]; then
-    echo "Missing package ${PKG_NAME}. "
-	echo "Trying to install ${PKG_NAME}. "
-    sudo apt --yes install $PKG_NAME
-  fi
-}
 
-checkinstall jq
-checkinstall awscli
+if [[ -z $COMMAND ]] || ! `contains "create submit delete" $COMMAND`; then
+   basic_usage 1 "the following arguments are required: command"  
+fi
+
+if [[ "$3" == "help" ]]; then
+	if [[ $COMMAND = "create" ]]; then
+	  usage_create 0
+	elif [[ $COMMAND = "submit" ]]; then
+	  usage_submit 0
+	elif [[ $COMMAND = "delete" ]]; then
+	   usage_delete 0
+	fi
+	basic_usage 1 "Unexpected error"
+fi
 
 
 HELP=0
 ERROR=0
 REGION=""
-
 CLUSTERNAME=""
 COMMAND=""
 HOME_DIR=""
@@ -81,6 +88,7 @@ S3=""
 MINJOBID=1
 MAXJOBID=1000000000
 QUEUE_NAME=""
+KEY_NAME=""
 
 while [[ $# -gt 1 ]]
 do
@@ -113,6 +121,10 @@ case $key in
     QUEUE_NAME="$2"
 	shift
     ;;
+	-p|--passwordless_ssh)
+    KEY_NAME="$2"
+	shift
+    ;;	
     *)
     ERROR=1
 	echo "Error: Unknown option $key"
@@ -124,14 +136,23 @@ done
 
 
 if [[ -n $1 ]]; then
-    CLUSTERNAME=$1
+    vals=(${1//@/ })
+    CLUSTERNAME=${vals[0]}
+	REGION=${vals[1]}
+    if [[ -z ${REGION} ]]; then
+	   basic_usage 1 "The last parameter does not contain region name. Should be clustername@regionname"
+    fi	
+	
 	if [[ -z ${QUEUE_NAME} ]]; then
 	   QUEUE_NAME=${CLUSTERNAME}
 	fi
 else
-	ERROR=1
-	echo "Error: The last parameter (clustername) not given"
+	basic_usage 1 "The last parameter (clustername@region) not given"
 fi
+
+echo "OK!"
+exit 0
+
 
 if [[ $CLUSTERNAME = "-h" ]] || [[ $CLUSTERNAME = "--help" ]]; then
     HELP=1
@@ -171,6 +192,40 @@ fi
 if [[ $HELP = "1" ]] || [[ $ERROR = "1" ]]; then
     usage $ERROR
 fi
+
+
+
+
+
+
+function checkinstall {
+  PKG_NAME=$1
+  PKG_OK=$(dpkg-query -W --showformat='${Status}\n' ${PKG_NAME}|grep "install ok installed")
+  if [ "" == "$PKG_OK" ]; then
+    echo "Missing package ${PKG_NAME}. "
+	echo "Trying to install ${PKG_NAME}. "
+    sudo apt --yes install $PKG_NAME
+  fi
+}
+
+checkinstall jq
+checkinstall awscli
+
+
+
+if [[ $COMMAND = "create" ]]; then
+  echo create
+
+elif [[ $COMMAND = "submit" ]]; then
+  echo submit
+
+elif [[ $COMMAND = "delete" ]]; then
+   echo delete
+fi
+
+exit 0
+
+
 
 
 
