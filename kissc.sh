@@ -256,7 +256,7 @@ if [[ $COMMAND = "create" ]]; then
     printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
     printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
     printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
-    printf "S3_CLOUD_INIT_SCRIPT=${S3_CLOUD_INIT_SCRIPT}\n" >> ${CLOUD_INIT_FILE}
+    printf "S3_RUN_NODE_SCRIPT=${S3_RUN_NODE_SCRIPT}\n" >> ${CLOUD_INIT_FILE}
     printf "USERNAME=${USERNAME}\n" >> ${CLOUD_INIT_FILE}
     
     cat ${BASH_FILE_DIR}/src/cloud_init_template.sh >> ${CLOUD_INIT_FILE}
