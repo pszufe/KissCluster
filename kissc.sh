@@ -178,6 +178,7 @@ if [[ -n $1 ]]; then
     if [[ -z ${QUEUE_NAME} ]]; then
        QUEUE_NAME=${CLUSTERNAME}
     fi
+    S3=${S3%/}
 else
     basic_usage 1 "The last parameter (clustername@region) not given"
 fi
@@ -255,6 +256,8 @@ if [[ $COMMAND = "create" ]]; then
     printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
     printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
     printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
+    printf "S3_CLOUD_INIT_SCRIPT=${S3_CLOUD_INIT_SCRIPT}\n" >> ${CLOUD_INIT_FILE}
+    printf "USERNAME=${USERNAME}\n" >> ${CLOUD_INIT_FILE}
     
     cat ${BASH_FILE_DIR}/src/cloud_init_template.sh >> ${CLOUD_INIT_FILE}
     chmod +x ${CLOUD_INIT_FILE}
@@ -268,7 +271,7 @@ if [[ $COMMAND = "create" ]]; then
                "queueid":{"N":"0"},"currentqueueid":{"N":"0"}, \
                "date":{"S":"'${createddate}'"},\
                "S3_location":{"S":"'${S3_LOCATION}'"},\
-               "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},\               
+               "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},\
                "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},\
                "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},\
                "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
@@ -291,7 +294,7 @@ elif [[ $COMMAND = "submit" ]]; then
 	if [[ -z $HOME_DIR ]]; then
 		usage_submit 1 "missing --folder parameter"
 	fi
-	
+
 	QUEUE_ID=`aws dynamodb --region ${REGION} update-item \
 	--table-name kissc_clusters \
 	--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
@@ -302,7 +305,7 @@ elif [[ $COMMAND = "submit" ]]; then
 	if [[ -z ${QUEUE_ID} ]];then 
 		usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc.sh create to create the cluster first."
 	fi
-		
+
 	QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
 
 	S3_LOCATION=${S3}/${CLUSTERNAME}/${QUEUE_ID_F}
@@ -333,7 +336,6 @@ elif [[ $COMMAND = "submit" ]]; then
 				"creator":{"S":"'"${creator}"'"},\
 				"S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
 				`
-				
 	res=`aws dynamodb --region ${REGION} update-item \
 		--table-name kissc_clusters \
 		--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
@@ -355,8 +357,6 @@ elif [[ $COMMAND = "submit" ]]; then
 
 	echo "The queue ${QUEUE_ID_F} has been successfully created"
 
-    
-    
 elif [[ $COMMAND = "delete" ]]; then
    echo "Deleting the counters and configuration for ${CLUSTERNAME}"
    res=`aws dynamodb --region ${REGION} delete-item --table-name kissc_clusters \
