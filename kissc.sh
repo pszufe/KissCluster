@@ -30,10 +30,12 @@ function usage_create {
         echo "kissc create: error: $2"
     fi
     echo "Usage:"
-    echo "kissc.sh create [parameters] clustername@region"
+    echo "kissc.sh create --s3_bucket s3_bucket [other parameters] clustername@region"
     echo "Supported parameters:"
+    echo "--s3_bucket s3_bucket - name of an AWS S3 bucket (e.g. s3://mybucketname/) that will be used "
+    echo "  to store cluster data."
     echo "--passwordless_ssh keyname - key name that will be used to configure passwordless ssh across cluster nodes. "
-	echo "  Please note that using this option will write information to your local ~/.ssh/config file."
+    echo "  Please note that using this option will write information to your local ~/.ssh/config file."
     echo "--user username - username that will be used on cluster nodes, defaults to 'ubuntu'"
     echo "clustername@region - name and region of your cluster"
     if [[ -n "$2" ]]; then
@@ -65,12 +67,12 @@ function usage_submit {
         echo "kissc submit: error: $2"
     fi
     echo "Usage:"
-    echo "kissc.sh submit --bash_command bash_command --folder folder --s3_bucket s3_bucket [other parameters] clustername@region"
+    echo "kissc.sh submit --job_command job_command --folder folder --s3_bucket s3_bucket [other parameters] clustername@region"
     echo ""
     echo "Supported parameters:"
-    echo "--bash_command bash_command - command to be executed on each node. "
-    echo "  Note that an additional parameter jobid will be added "
-    echo "  to each command executed on the clustername. "
+    echo "--job_command job_command - job command to be executed on each node (commands run on cluster). "
+    echo "  Note that an every time  job_command is exected an additional parameter <jobid> "
+    echo "   will be added to each command executed on the clustername. "
     echo "  The command will be executed on nodes within the folder given as the next parameter"
     echo "--folder folder - a local path  that contains all files needed to execute the command. "
     echo "  The contents of the folder will be copied to each cluster node"
@@ -93,20 +95,20 @@ if [[ -z $COMMAND ]] || ! `contains "create submit delete" $COMMAND`; then
 fi
 
 if [[ "$2" == "help" ]]; then
-	if [[ $COMMAND = "create" ]]; then
-	  usage_create 0
-	elif [[ $COMMAND = "submit" ]]; then
-	  usage_submit 0
-	elif [[ $COMMAND = "delete" ]]; then
-	   usage_delete 0
-	fi
-	basic_usage 1 "Unexpected error"
+    if [[ $COMMAND = "create" ]]; then
+      usage_create 0
+    elif [[ $COMMAND = "submit" ]]; then
+      usage_submit 0
+    elif [[ $COMMAND = "delete" ]]; then
+       usage_delete 0
+    fi
+    basic_usage 1 "Unexpected error"
 fi
 
 
 REGION=""
 CLUSTERNAME=""
-BASH_COMMAND=""
+job_command=""
 HOME_DIR=""
 S3=""
 MINJOBID=1
@@ -122,44 +124,44 @@ do
 key="$1"
 case $key in
     -c|--command)
-    BASH_COMMAND="$2"
-	shift
+    job_command="$2"
+    shift
     ;;
     -f|--folder)
     HOME_DIR="$2"
-	shift
+    shift
     ;;
-	-s|--min_jobid)
+    -s|--min_jobid)
     MINJOBID="$2"
-	shift
+    shift
     ;;
-	-e|--max_jobid)
+    -e|--max_jobid)
     MAXJOBID="$2"
-	shift
+    shift
     ;;
     -s|--s3_bucket)
     S3="$2"
-	shift
+    shift
     ;;
     -h|--help)
     HELP=1
     ;;
     -n|--queue_name)
     QUEUE_NAME="$2"
-	shift
+    shift
     ;;
     -p|--passwordless_ssh)
     KEY_NAME="$2"
-	shift
+    shift
     ;;
     -u|--user)
     USERNAME="$2"
-	shift
+    shift
     ;;
     *)
     ERROR=1
-	echo "Error: Unknown option $key"
-	break;
+    echo "Error: Unknown option $key"
+    break;
     ;;
 esac
 shift
@@ -169,15 +171,15 @@ done
 if [[ -n $1 ]]; then
     vals=(${1//@/ })
     CLUSTERNAME=${vals[0]}
-	REGION=${vals[1]}
+    REGION=${vals[1]}
     if [[ -z ${REGION} ]]; then
-	   basic_usage 1 "The last parameter does not contain region name. Should be clustername@regionname"
+       basic_usage 1 "The last parameter does not contain region name. Should be clustername@regionname"
     fi
-	if [[ -z ${QUEUE_NAME} ]]; then
-	   QUEUE_NAME=${CLUSTERNAME}
-	fi
+    if [[ -z ${QUEUE_NAME} ]]; then
+       QUEUE_NAME=${CLUSTERNAME}
+    fi
 else
-	basic_usage 1 "The last parameter (clustername@region) not given"
+    basic_usage 1 "The last parameter (clustername@region) not given"
 fi
 
 checkinstall jq
@@ -189,76 +191,172 @@ NODESTABLE="kissc_nodes_${CLUSTERNAME}"
 
 
 if [[ $COMMAND = "create" ]]; then
-	PUBLIC_KEY_DATA="-"
-	PRIVATE_KEY_DATA="-"
-	if [[ -n $KEY_NAME ]];then
-		KEY_FILE=~/.ssh/$KEY_NAME
-		echo "Creating a key $KEY_NAME for passwordless SSH in file $KEY_FILE"
-		ssh-keygen -P "" -t rsa -f $KEY_FILE
-		printf "\nUser $USERNAME\nPubKeyAuthentication yes\nIdentityFile $KEY_FILE\n" >> ~/.ssh/config
-		PUBLIC_KEY_DATA=$(<${KEY_FILE}.pub)
-                PUBLIC_KEY_DATA=${PUBLIC_KEY_DATA//$'\n'/\\n}
-		PRIVATE_KEY_DATA=$(<${KEY_FILE})
-                PRIVATE_KEY_DATA=${PRIVATE_KEY_DATA//$'\n'/\\n}
-	fi
+    if [[ -z $S3 ]]; then
+        usage_create 1 "missing --s3_bucket parameter"
+    fi
+    S3_LOCATION=${S3}/${CLUSTERNAME}
+
+    PUBLIC_KEY_DATA="-"
+    PRIVATE_KEY_DATA="-"
+    if [[ -n $KEY_NAME ]];then
+        KEY_FILE=~/.ssh/$KEY_NAME
+        echo "Creating a key $KEY_NAME for passwordless SSH in file $KEY_FILE"
+        ssh-keygen -P "" -t rsa -f $KEY_FILE
+        printf "\nUser $USERNAME\nPubKeyAuthentication yes\nIdentityFile $KEY_FILE\n" >> ~/.ssh/config
+        PUBLIC_KEY_DATA=$(<${KEY_FILE}.pub)
+        PUBLIC_KEY_DATA=${PUBLIC_KEY_DATA//$'\n'/\\n}
+        PRIVATE_KEY_DATA=$(<${KEY_FILE})
+        PRIVATE_KEY_DATA=${PRIVATE_KEY_DATA//$'\n'/\\n}
+    fi
     createddate=$(date '+%Y%m%dT%H%M%SZ')
 
-	res=`aws dynamodb --region ${REGION} describe-table --table-name kissc_clusters 2>/dev/null` || echo "DynamoDB table kissc_clusters not found"
-	if [[ -z "${res// }" ]]; then
-	  echo "Creating DynamoDB table kissc_clusters"
-	  res=`aws dynamodb --region ${REGION} create-table --table-name kissc_clusters \
-		--attribute-definitions AttributeName=clustername,AttributeType=S \
-		--key-schema AttributeName=clustername,KeyType=HASH \
-		--provisioned-throughput ReadCapacityUnits=${CLUSTERS_TABLE_ReadCapacityUnits},WriteCapacityUnits=${CLUSTERS_TABLE_WriteCapacityUnits}`
-	   dynamoDBwait4table kissc_clusters
-	fi
+    res=`aws dynamodb --region ${REGION} describe-table --table-name kissc_clusters 2>/dev/null` || echo "DynamoDB table kissc_clusters not found"
+    if [[ -z "${res// }" ]]; then
+      echo "Creating DynamoDB table kissc_clusters"
+      res=`aws dynamodb --region ${REGION} create-table --table-name kissc_clusters \
+        --attribute-definitions AttributeName=clustername,AttributeType=S \
+        --key-schema AttributeName=clustername,KeyType=HASH \
+        --provisioned-throughput ReadCapacityUnits=${CLUSTERS_TABLE_ReadCapacityUnits},WriteCapacityUnits=${CLUSTERS_TABLE_WriteCapacityUnits}`
+       dynamoDBwait4table kissc_clusters
+    fi
 
-	echo "(re)setting the counters and configuration for ${CLUSTERNAME}"
-        echo "${PUBLIC_KEY_DATA}"
-        echo "${PRIVATE_KEY_DATA}"
+    echo "(re)setting the counters and configuration for ${CLUSTERNAME}"
 
-	res=`aws dynamodb --region ${REGION} put-item --table-name kissc_clusters \
-	  --item '{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, \
-			   "queueid":{"N":"0"},"currentqueueid":{"N":"0"}, \
-			   "date":{"S":"'${createddate}'"},\
-			   "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
-			   "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, \
-			   "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }' `
+    
 
-        dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
+    dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 
-	echo "Creating DynamoDB table ${NODESTABLE}"
-	res=`aws dynamodb --region ${REGION}  create-table --table-name ${NODESTABLE} \
-		--attribute-definitions AttributeName=nodeid,AttributeType=N \
-		--key-schema AttributeName=nodeid,KeyType=HASH \
-		--provisioned-throughput ReadCapacityUnits=${NODES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${NODES_TABLE_WriteCapacityUnits}`
-	echo "Creating DynamoDB table ${QUEUESTABLE}"
-	res=`aws dynamodb --region ${REGION}  create-table --table-name ${QUEUESTABLE} \
-		--attribute-definitions AttributeName=queueid,AttributeType=N \
-		--key-schema AttributeName=queueid,KeyType=HASH \
-		--provisioned-throughput ReadCapacityUnits=${QUEUES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${QUEUES_TABLE_WriteCapacityUnits}`
-	echo "Creating DynamoDB table ${JOBSTABLE}"
-	res=`aws dynamodb --region ${REGION}  create-table --table-name ${JOBSTABLE} \
-		--attribute-definitions AttributeName=queueid,AttributeType=N AttributeName=jobid,AttributeType=N  \
-		--key-schema AttributeName=queueid,KeyType=HASH AttributeName=jobid,KeyType=RANGE \
-		--provisioned-throughput ReadCapacityUnits=${JOBS_TABLE_ReadCapacityUnits},WriteCapacityUnits=${JOBS_TABLE_WriteCapacityUnits}`
+    echo "Creating DynamoDB table ${NODESTABLE}"
+    res=`aws dynamodb --region ${REGION}  create-table --table-name ${NODESTABLE} \
+        --attribute-definitions AttributeName=nodeid,AttributeType=N \
+        --key-schema AttributeName=nodeid,KeyType=HASH \
+        --provisioned-throughput ReadCapacityUnits=${NODES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${NODES_TABLE_WriteCapacityUnits}`
+    echo "Creating DynamoDB table ${QUEUESTABLE}"
+    res=`aws dynamodb --region ${REGION}  create-table --table-name ${QUEUESTABLE} \
+        --attribute-definitions AttributeName=queueid,AttributeType=N \
+        --key-schema AttributeName=queueid,KeyType=HASH \
+        --provisioned-throughput ReadCapacityUnits=${QUEUES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${QUEUES_TABLE_WriteCapacityUnits}`
+    echo "Creating DynamoDB table ${JOBSTABLE}"
+    res=`aws dynamodb --region ${REGION}  create-table --table-name ${JOBSTABLE} \
+        --attribute-definitions AttributeName=queueid,AttributeType=N AttributeName=jobid,AttributeType=N  \
+        --key-schema AttributeName=queueid,KeyType=HASH AttributeName=jobid,KeyType=RANGE \
+        --provisioned-throughput ReadCapacityUnits=${JOBS_TABLE_ReadCapacityUnits},WriteCapacityUnits=${JOBS_TABLE_WriteCapacityUnits}`
 
-	dynamoDBwait4table ${NODESTABLE}
-	dynamoDBwait4table ${QUEUESTABLE}
-	dynamoDBwait4table ${JOBSTABLE}
-	CLOUD_INIT_FILE=./cloud_init_node_${CLUSTERNAME}.sh
+    dynamoDBwait4table ${NODESTABLE}
+    dynamoDBwait4table ${QUEUESTABLE}
+    dynamoDBwait4table ${JOBSTABLE}
+    
+    CLOUD_INIT_FILE_NAME=cloud_init_node_${CLUSTERNAME}.sh
+    CLOUD_INIT_FILE=./${CLOUD_INIT_FILE_NAME}
+    S3_CLOUD_INIT_SCRIPT=${S3_LOCATION}/${CLOUD_INIT_FILE_NAME}
+    S3_RUN_NODE_SCRIPT=${S3_LOCATION}/cluster/run_node_${CLUSTERNAME}.sh
+    S3_JOB_ENVELOPE_SCRIPT=${S3_LOCATION}/cluster/job_envelope_${CLUSTERNAME}.sh
+    
+    printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
+    printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
+    printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
+    
+    cat ${BASH_FILE_DIR}/src/cloud_init_template.sh >> ${CLOUD_INIT_FILE}
+    chmod +x ${CLOUD_INIT_FILE}
+    aws s3 --region ${REGION} cp ${CLOUD_INIT_FILE} ${S3_CLOUD_INIT_SCRIPT}
+    aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/run_node.sh ${S3_RUN_NODE_SCRIPT}
+    aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/job_envelope.sh ${S3_JOB_ENVELOPE_SCRIPT}
+    
+    
+    res=`aws dynamodb --region ${REGION} put-item --table-name kissc_clusters \
+      --item '{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, \
+               "queueid":{"N":"0"},"currentqueueid":{"N":"0"}, \
+               "date":{"S":"'${createddate}'"},\
+               "S3_location":{"S":"'${S3_LOCATION}'"},\
+               "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},\               
+               "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},\
+               "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},\
+               "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
+               "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, \
+               "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }' `
+    
+    printf "\nSUCCESS!\n"
+    printf "The Servless master of cluster ${CLUSTERNAME} has been successfully build!  \n"
+    printf "Now you can simply run ${CLOUD_INIT_FILE} on any Linux machine having AWS CLI configured to start processing on your cluster. \n"
+    printf "${CLOUD_INIT_FILE} can also be used as a cloud-init configuration for AWS EC2 instances. \n"
+
 
 elif [[ $COMMAND = "submit" ]]; then
-    if [[ -z $S3 ]]; then
-        usage_submit 1 "missing --s3_bucket parameter"
-    fi
-    if [[ -z $BASH_COMMAND ]]; then
-        usage_submit 1 "missing --bash_command parameter"
-    fi
-    if [[ -z $HOME_DIR ]]; then
-        usage_submit 1 "missing --folder parameter"
-    fi
-	S3_LOCATION=${S3}/${CLUSTERNAME}
+	if [[ -z $S3 ]]; then
+		usage_submit 1 "missing --s3_bucket parameter"
+	fi
+	if [[ -z $job_command ]]; then
+		usage_submit 1 "missing --job_command parameter"
+	fi
+	if [[ -z $HOME_DIR ]]; then
+		usage_submit 1 "missing --folder parameter"
+	fi
+	
+	QUEUE_ID=`aws dynamodb --region ${REGION} update-item \
+	--table-name kissc_clusters \
+	--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+	--update-expression "SET queueid = queueid + :incr" \
+	--expression-attribute-values '{":incr":{"N":"1"}}' \
+	--return-values UPDATED_NEW | jq -r ".Attributes.queueid.N"`
+
+	if [[ -z ${QUEUE_ID} ]];then 
+		usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc.sh create to create the cluster first."
+	fi
+		
+	QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
+
+	S3_LOCATION=${S3}/${CLUSTERNAME}/${QUEUE_ID_F}
+
+	echo "Creating a queue ${QUEUE_ID_F} at ${S3_LOCATION}"
+
+	echo Deleting S3 folder ${S3_LOCATION}/app
+	res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
+	tmpname=`tempfile`
+	printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
+	echo "copying application data to S3" 
+	aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
+	aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job.sh
+
+	jobid=$((${MINJOBID}-1))
+	createddate=$(date '+%Y%m%dT%H%M%SZ')
+	creator="${USER}@${HOSTNAME}"
+
+	res=`aws dynamodb --region ${REGION} put-item --table-name ${QUEUESTABLE} \
+		--item '{"queueid":{"N":"'"${QUEUE_ID}"'"}, \
+				"qstatus":{"S":"created"},\
+				"queue_name":{"S":"'"${QUEUE_NAME}"'"},\
+				"command":{"S":"'"${COMMAND}"'"},\
+				"jobid":{"N":"'"${jobid}"'"},\
+				"minjobid":{"N":"'"${MINJOBID}"'"},\
+				"maxjobid":{"N":"'"${MAXJOBID}"'"},\
+				"date":{"S":"'"${createddate}"'"},\
+				"creator":{"S":"'"${creator}"'"},\
+				"S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
+				`
+				
+	res=`aws dynamodb --region ${REGION} update-item \
+		--table-name kissc_clusters \
+		--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+		--update-expression "SET currentqueueid = :queueid" \
+		--condition-expression "currentqueueid = :zero" \
+		--expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
+		--return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
+
+
+	if [[ "${res}" = "${QUEUE_ID}" ]];then
+		echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
+		aws dynamodb --region ${REGION} update-item \
+			--table-name ${QUEUESTABLE} \
+			--key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
+			--update-expression "SET qstatus = :newstatus" \
+			--condition-expression "qstatus = :oldstatus" \
+			--expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
+	fi
+
+	echo "The queue ${QUEUE_ID_F} has been successfully created"
+
+    
+    
 elif [[ $COMMAND = "delete" ]]; then
    echo "Deleting the counters and configuration for ${CLUSTERNAME}"
    res=`aws dynamodb --region ${REGION} delete-item --table-name kissc_clusters \
@@ -266,25 +364,10 @@ elif [[ $COMMAND = "delete" ]]; then
    dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 fi
 
-exit 0
 
 
 
 
-S3_RUN_NODE_SCRIPT=${S3_LOCATION}/cluster/run_node_${CLUSTERNAME}.sh
 
-aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/job_envelope.sh ${S3_LOCATION}/cluster/job_envelope.sh
-aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/run_node.sh ${S3_RUN_NODE_SCRIPT}
 
-printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
-printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
-printf "REGION=${REGION}\n" >> ${CLOUD_INIT_FILE}
-printf "S3_RUN_NODE_SCRIPT=${S3_RUN_NODE_SCRIPT}\n\n" >> ${CLOUD_INIT_FILE}
-cat ${BASH_FILE_DIR}/src/cloud_init_template.sh >> ${CLOUD_INIT_FILE}
-chmod +x ${CLOUD_INIT_FILE}
-aws s3 --region ${REGION} cp ${CLOUD_INIT_FILE} ${S3_LOCATION}/cluster/
 
-printf "\nSUCCESS!\n"
-printf "The cluster ${CLUSTERNAME} has been successfully build!  \n"
-printf "Now you can simply run ${CLOUD_INIT_FILE} on any AWS EC2 machine to start processing on your cluster. \n"
-printf "${CLOUD_INIT_FILE} can also be used as a cloud-init configuration for EC2 instances. \n"
