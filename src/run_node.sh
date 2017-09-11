@@ -2,7 +2,7 @@
 
 REGION=$1
 CLUSTERNAME=$2
-
+HOME_DIR=$3
 
 set -e
 
@@ -10,23 +10,23 @@ NODESTABLE="kissc_nodes_${CLUSTERNAME}"
 QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 
-HOME_DIR=/home/ubuntu/kissc-${CLUSTERNAME}
+
+S3_job_envelope_script=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_job_envelope_script.S"`
+S3_LOCATION_master=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_folder.S"
+CLUSTERDATE=`aws dynamodb --region ${REGION} get-item \
+    --table-name kissc_clusters \
+    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+    | jq -r ".Item.date.S"`
+
+echo "Date of the cluster ${CLUSTERNAME} creation: ${CLUSTERDATE}"
 
 
 
-QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
-QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
-S3_LOCATION=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.S3_folder.S"`
-
-QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
-
-S3_LOCATION_master=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_folder.S"`
 
 
 
 
 echo "S3_LOCATION_master ${S3_LOCATION_master}"
-echo "S3_LOCATION ${S3_LOCATION}"
 
 
 NODEID=`aws dynamodb --region ${REGION} update-item \
@@ -35,36 +35,18 @@ NODEID=`aws dynamodb --region ${REGION} update-item \
     --update-expression "SET nodeid = nodeid + :incr" \
     --expression-attribute-values '{":incr":{"N":"1"}}' \
     --return-values UPDATED_NEW | jq -r ".Attributes.nodeid.N"`
-printf ${NODEID} > /home/ubuntu/node.id
 
 createddate=$(date '+%Y%m%dT%H%M%SZ')
 
 
 echo "Starting cluster node with nodeid: ${NODEID} Node creation date: ${createddate}"
 
-NODEID_F="$(printf "%05d" $NODEID)"
+NODEID_F=N"$(printf "%05d" $NODEID)"
 
 mkdir -p ${HOME_DIR}
-mkdir -p ${HOME_DIR}/app/
-mkdir -p ${HOME_DIR}/res/
-mkdir -p ${HOME_DIR}/log/
-echo Synchronizing files...
-
-echo "aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null"
-aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
-
-aws s3 --region ${REGION} cp ${S3_LOCATION}/app/job.sh ${HOME_DIR}/app/job.sh
-aws s3 --region ${REGION} cp ${S3_LOCATION_master}/cluster/job_envelope.sh ${HOME_DIR}/app/job_envelope.sh
-
-chmod +x ${HOME_DIR}/app/job.sh
-chmod +x ${HOME_DIR}/app/job_envelope.sh
-
-CLUSTERDATE=`aws dynamodb --region ${REGION} get-item \
-    --table-name kissc_clusters \
-    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
-    | jq -r ".Item.date.S"`
-
-echo "Date of the cluster ${CLUSTERNAME}: ${CLUSTERDATE}"
+printf ${NODEID} > ${HOMEDIR}/node.id
+aws s3 --region ${REGION} cp ${S3_job_envelope_script} ${HOME_DIR}/job_envelope.sh
+chmod +x ${HOME_DIR}/job_envelope.sh
 
 
 hostname=`curl -s http://169.254.169.254/latest/meta-data/public-hostname`
@@ -89,7 +71,7 @@ echo "Node instance_id: ${instance_id}"
 echo "Node instance_type: ${instance_type}"
 echo "Node iam_profile: ${iam_profile}"
 echo "Node availability zone: ${az}"
-echo "Configured ecurity groups: ${security_groups}"
+echo "Configured security groups: ${security_groups}"
 
 NPROC=`nproc`
 logfile="${HOME_DIR}/log/${NODEID_F}_${createddate}.log.txt"
@@ -109,7 +91,10 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
 			"az":{"S":"'${az}'"},\
 			"security_groups":{"S":"'${security_groups}'"}}' `
 
-nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$NPROC bash ${HOME_DIR}/app/job_envelope.sh "${CLUSTERNAME}" "${REGION}" "${NODEID}" "${S3_LOCATION}" "${HOME_DIR}" "${CLUSTERDATE}" &>> $logfile &
+nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$NPROC bash ${HOME_DIR}/job_envelope.sh "${CLUSTERNAME}" "${REGION}" "${NODEID}" "${S3_LOCATION_master}" "${HOME_DIR}" "${CLUSTERDATE}" &>> $logfile &
 
 echo "Node ${NODEID} has been successfully started."
 echo "In order to terminate computations on this node look for the xargs process and kill it (pkill -f xargs)"
+
+
+

@@ -3,16 +3,35 @@
 CLUSTERNAME=$1
 REGION=$2
 NODEID=$3
-S3_LOCATION=$4
+S3_LOCATION_master=$4
 HOME_DIR=$5
 CLUSTERDATE=$6
 RUN_ID=$7
 
 
-
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
 QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
+
+
+mkdir -p ${HOME_DIR}/app/
+mkdir -p ${HOME_DIR}/res/
+mkdir -p ${HOME_DIR}/log/
+
+QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
+
+echo Synchronizing files...
+QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
+S3_LOCATION=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.S3_folder.S"`
+QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
+
+echo "aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null"
+aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
+
+aws s3 --region ${REGION} cp ${S3_LOCATION}/app/job.sh ${HOME_DIR}/app/job.sh
+chmod +x ${HOME_DIR}/app/job.sh
+
+
 
 QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
 QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
