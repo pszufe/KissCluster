@@ -30,11 +30,18 @@ function dynamoDBwait4table {
 }
 
 function dynamoDBdroptable {
-    TABLENAME=$1
+    params="$1"
+    tablearr=(${params})
+    tablearr2=()
+    for TABLENAME in ${tablearr[*]};do
 	res=`aws dynamodb --region ${REGION} describe-table --table-name ${TABLENAME} 2>/dev/null` || echo "DynamoDB table ${TABLENAME} not found"
 	if [[ ! -z "${res// }" ]]; then
 	  echo "Dropping DynamoDB table ${TABLENAME}"
 	  res=`aws dynamodb --region ${REGION}  delete-table --table-name ${TABLENAME}`
+          tablearr2+=(${TABLENAME})
+        fi
+    done
+    for TABLENAME in ${tablearr2[*]};do
 	  while
 	    res=`aws dynamodb --region ${REGION} describe-table --table-name ${TABLENAME} 2>/dev/null`
 		echo "Waiting for DynamoDB table ${TABLENAME} to be dropped"
@@ -48,5 +55,5 @@ function dynamoDBdroptable {
 		 :
 	   done
 	   echo "DynamoDB table ${TABLENAME} has been dropped"
-	fi
+    done
 }

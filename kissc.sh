@@ -1,4 +1,5 @@
 #!/bin/bash
+
 set -e
 
 BASH_FILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -188,15 +189,17 @@ NODESTABLE="kissc_nodes_${CLUSTERNAME}"
 
 
 if [[ $COMMAND = "create" ]]; then
-	PUBLIC_KEY_DATA=""
-	PRIVATE_KEY_DATA=""  
+	PUBLIC_KEY_DATA="-"
+	PRIVATE_KEY_DATA="-"
 	if [[ -n $KEY_NAME ]];then
 		KEY_FILE=~/.ssh/$KEY_NAME
 		echo "Creating a key $KEY_NAME for passwordless SSH in file $KEY_FILE"
 		ssh-keygen -P "" -t rsa -f $KEY_FILE
-		printf "\nUser $USERNAME\nPubKeyAuthentication yes\nIdentityFile $KEY_NAME\n" >> ~/.ssh/config
-		PUBLIC_KEY_DATA=$(<${KEY_NAME}.pub)
-		PRIVATE_KEY_DATA=$(<${KEY_NAME})	 
+		printf "\nUser $USERNAME\nPubKeyAuthentication yes\nIdentityFile $KEY_FILE\n" >> ~/.ssh/config
+		PUBLIC_KEY_DATA=$(<${KEY_FILE}.pub)
+                PUBLIC_KEY_DATA=${PUBLIC_KEY_DATA//$'\n'/\\n}
+		PRIVATE_KEY_DATA=$(<${KEY_FILE})
+                PRIVATE_KEY_DATA=${PRIVATE_KEY_DATA//$'\n'/\\n}
 	fi
     createddate=$(date '+%Y%m%dT%H%M%SZ')
 
@@ -211,44 +214,38 @@ if [[ $COMMAND = "create" ]]; then
 	fi
 
 	echo "(re)setting the counters and configuration for ${CLUSTERNAME}"
+        echo "${PUBLIC_KEY_DATA}"
+        echo "${PRIVATE_KEY_DATA}"
+
 	res=`aws dynamodb --region ${REGION} put-item --table-name kissc_clusters \
 	  --item '{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, \
 			   "queueid":{"N":"0"},"currentqueueid":{"N":"0"}, \
 			   "date":{"S":"'${createddate}'"},\
 			   "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
-			   "publickey":{"S":"'${PUBLIC_KEY_DATA}'"}, \
-			   "privatekey":{"S":"'${PRIVATE_KEY_DATA}'"} }  '`
+			   "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, \
+			   "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }' `
 
-	dynamoDBdroptable ${NODESTABLE}
-	dynamoDBdroptable ${QUEUESTABLE}
-	dynamoDBdroptable ${JOBSTABLE}
-
+        dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 
 	echo "Creating DynamoDB table ${NODESTABLE}"
 	res=`aws dynamodb --region ${REGION}  create-table --table-name ${NODESTABLE} \
 		--attribute-definitions AttributeName=nodeid,AttributeType=N \
 		--key-schema AttributeName=nodeid,KeyType=HASH \
-		--provisioned-throughput ReadCapacityUnits=${NODES_TABLE_ReadCapacityUnits},WriteCapacityUnits={NODES_TABLE_WriteCapacityUnits}`
-
-
+		--provisioned-throughput ReadCapacityUnits=${NODES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${NODES_TABLE_WriteCapacityUnits}`
 	echo "Creating DynamoDB table ${QUEUESTABLE}"
 	res=`aws dynamodb --region ${REGION}  create-table --table-name ${QUEUESTABLE} \
 		--attribute-definitions AttributeName=queueid,AttributeType=N \
 		--key-schema AttributeName=queueid,KeyType=HASH \
 		--provisioned-throughput ReadCapacityUnits=${QUEUES_TABLE_ReadCapacityUnits},WriteCapacityUnits=${QUEUES_TABLE_WriteCapacityUnits}`
-
 	echo "Creating DynamoDB table ${JOBSTABLE}"
 	res=`aws dynamodb --region ${REGION}  create-table --table-name ${JOBSTABLE} \
 		--attribute-definitions AttributeName=queueid,AttributeType=N AttributeName=jobid,AttributeType=N  \
 		--key-schema AttributeName=queueid,KeyType=HASH AttributeName=jobid,KeyType=RANGE \
 		--provisioned-throughput ReadCapacityUnits=${JOBS_TABLE_ReadCapacityUnits},WriteCapacityUnits=${JOBS_TABLE_WriteCapacityUnits}`
 
-
 	dynamoDBwait4table ${NODESTABLE}
 	dynamoDBwait4table ${QUEUESTABLE}
 	dynamoDBwait4table ${JOBSTABLE}
-
-
 	CLOUD_INIT_FILE=./cloud_init_node_${CLUSTERNAME}.sh
 
 elif [[ $COMMAND = "submit" ]]; then
@@ -263,18 +260,13 @@ elif [[ $COMMAND = "submit" ]]; then
     fi
 	S3_LOCATION=${S3}/${CLUSTERNAME}
 elif [[ $COMMAND = "delete" ]]; then
-   echo delete
+   echo "Deleting the counters and configuration for ${CLUSTERNAME}"
+   res=`aws dynamodb --region ${REGION} delete-item --table-name kissc_clusters \
+          --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
+   dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 fi
 
 exit 0
-
-
-
-if [[ ! -z ${COMMAND} ]];then 
-    bash ${BASH_FILE_DIR}/kissc-qsub.sh --region ${REGION} --command "${COMMAND}" \
-		--folder "${HOME_DIR}" --s3_bucket ${S3} --queue_name "${QUEUE_NAME}" \
-		--min_jobid ${MINJOBID} --max_jobid ${MAXJOBID} "${CLUSTERNAME}"
-fi
 
 
 
