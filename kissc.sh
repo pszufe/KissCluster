@@ -265,21 +265,20 @@ if [[ $COMMAND = "create" ]]; then
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/run_node.sh ${S3_RUN_NODE_SCRIPT}
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/job_envelope.sh ${S3_JOB_ENVELOPE_SCRIPT}
     
+    json='{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, 
+               "queueid":{"N":"0"}, 
+               "date":{"S":"'${createddate}'"},
+               "S3_location":{"S":"'${S3_LOCATION}'"},
+               "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},
+               "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},
+               "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},
+               "workers_in_a_node":{"S":"'"${WORKERS_IN_A_NODE}"'"},
+               "creator":{"S":"'${USER}'@'${HOSTNAME}'"},
+               "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, 
+               "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }'
     
     res=`aws dynamodb --region ${REGION} put-item --table-name kissc_clusters \
-      --item '{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, \
-               "queueid":{"N":"0"}, \
-               "date":{"S":"'${createddate}'"},\
-               "S3_location":{"S":"'${S3_LOCATION}'"},\
-               "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},\
-               "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},\
-               "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},\
-			   
-			   
-			   "workers_in_a_node":{"S":"${WORKERS_IN_A_NODE}"},\
-               "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
-               "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, \
-               "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }' `
+      --item "$json"`
     
     printf "\nSUCCESS!\n"
     printf "The Servless master of cluster ${CLUSTERNAME} has been successfully build!  \n"
