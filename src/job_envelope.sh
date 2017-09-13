@@ -1,10 +1,10 @@
 #!/bin/bash
 
-CLUSTERNAME=$1
-REGION=$2
-NODEID=$3
-S3_LOCATION_master=$4
-HOME_DIR=$5
+REGION=$1
+CLUSTERNAME=$2
+HOME_DIR=$3
+NODEID=$4
+S3_LOCATION_master=$5
 CLUSTERDATE=$6
 RUN_ID=$7
 
@@ -18,7 +18,7 @@ mkdir -p ${HOME_DIR}/app/
 mkdir -p ${HOME_DIR}/res/
 mkdir -p ${HOME_DIR}/log/
 
-QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
+#QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
 
 echo Synchronizing files...
 QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
@@ -33,8 +33,8 @@ chmod +x ${HOME_DIR}/app/job.sh
 
 
 
-QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
-QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
+#QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
+#QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
 
 
 JOB_ID=`aws dynamodb --region ${REGION} update-item \

@@ -268,12 +268,15 @@ if [[ $COMMAND = "create" ]]; then
     
     res=`aws dynamodb --region ${REGION} put-item --table-name kissc_clusters \
       --item '{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, \
-               "queueid":{"N":"0"},"currentqueueid":{"N":"0"}, \
+               "queueid":{"N":"0"}, \
                "date":{"S":"'${createddate}'"},\
                "S3_location":{"S":"'${S3_LOCATION}'"},\
                "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},\
                "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},\
                "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},\
+			   
+			   
+			   "workers_in_a_node":{"S":"${WORKERS_IN_A_NODE}"},\
                "creator":{"S":"'${USER}'@'${HOSTNAME}'"},\
                "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, \
                "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }' `
@@ -336,24 +339,24 @@ elif [[ $COMMAND = "submit" ]]; then
 				"creator":{"S":"'"${creator}"'"},\
 				"S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
 				`
-	res=`aws dynamodb --region ${REGION} update-item \
-		--table-name kissc_clusters \
-		--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
-		--update-expression "SET currentqueueid = :queueid" \
-		--condition-expression "currentqueueid = :zero" \
-		--expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
-		--return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
 
-
-	if [[ "${res}" = "${QUEUE_ID}" ]];then
-		echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
-		aws dynamodb --region ${REGION} update-item \
-			--table-name ${QUEUESTABLE} \
-			--key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
-			--update-expression "SET qstatus = :newstatus" \
-			--condition-expression "qstatus = :oldstatus" \
-			--expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
-	fi
+	#res=`aws dynamodb --region ${REGION} update-item \
+	#	--table-name kissc_clusters \
+	#	--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+	#	--update-expression "SET currentqueueid = :queueid" \
+	#	--condition-expression "currentqueueid = :zero" \
+	#	--expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
+	#	--return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
+	#if [[ "${res}" = "${QUEUE_ID}" ]];then
+	#	echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
+	#	aws dynamodb --region ${REGION} update-item \
+	#		--table-name ${QUEUESTABLE} \
+	#		--key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
+	#
+	#	--update-expression "SET qstatus = :newstatus" \
+	#		--condition-expression "qstatus = :oldstatus" \
+	#		--expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
+	#fi
 
 	echo "The queue ${QUEUE_ID_F} has been successfully created"
 
@@ -362,6 +365,7 @@ elif [[ $COMMAND = "delete" ]]; then
    res=`aws dynamodb --region ${REGION} delete-item --table-name kissc_clusters \
           --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
    dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
+   echo "Configuration for ${CLUSTERNAME} successfully deleted."
 fi
 
 
