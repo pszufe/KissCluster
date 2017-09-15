@@ -221,9 +221,12 @@ if [[ $COMMAND = "create" ]]; then
        dynamoDBwait4table kissc_clusters
     fi
 
-    echo "(re)setting the counters and configuration for ${CLUSTERNAME}"
+    echo "Setting the counters and configuration for ${CLUSTERNAME}"
 
-    
+	res=`aws dynamodb --region us-east-2 describe-table --table-name ${NODESTABLE} 2>/dev/null`
+    if [[ --n ${NODESTABLE} ]]; then
+		basic_usage 1 "The cluster ${CLUSTERNAME} already exist. Please use a different cluster name or delete the cluster first"
+	fi
 
     dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 
