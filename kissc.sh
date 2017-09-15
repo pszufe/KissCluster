@@ -196,11 +196,12 @@ if [[ $COMMAND = "create" ]]; then
         usage_create 1 "missing --s3_bucket parameter"
     fi
     S3_LOCATION=${S3}/${CLUSTERNAME}
-	
-	res=`aws dynamodb --region us-east-2 describe-table --table-name ${NODESTABLE} 2>/dev/null`
-    if [[ ! -z "${res}" ]]; then
-		basic_usage 1 "The cluster ${CLUSTERNAME} already exist. Please use a different cluster name or delete the cluster first"
-	fi
+
+
+    res=`aws dynamodb --region us-east-2 describe-table --table-name ${NODESTABLE} 2>/dev/null  | jq -r ".Table.TableArn"` &&
+    if [[ ! -z "$res" ]]; then
+       basic_usage 1 "The cluster ${CLUSTERNAME} already exist. Please use a different cluster name or delete the cluster first"
+    fi
 
     PUBLIC_KEY_DATA="-"
     PRIVATE_KEY_DATA="-"
