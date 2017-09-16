@@ -90,7 +90,7 @@ echo "Node iam_profile: ${iam_profile}"
 echo "Node availability zone: ${az}"
 echo "Configured security groups: ${security_groups}"
 
-
+sudo install -d -o ${USERNAME} -g ${USERNAME} ${HOMEDIR}/log
 logfile="${HOMEDIR}/log/${NODEID_F}_${createddate}.log.txt"
 
 echo "Number of available vCPU cores: `nproc` number of processes: ${max_procs}"
