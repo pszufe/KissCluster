@@ -282,7 +282,8 @@ if [[ $COMMAND = "create" ]]; then
     CLOUD_INIT_FILE=./${CLOUD_INIT_FILE_NAME}
     S3_CLOUD_INIT_SCRIPT=${S3_LOCATION}/${CLOUD_INIT_FILE_NAME}
     S3_RUN_NODE_SCRIPT=${S3_LOCATION}/cluster/run_node_${CLUSTERNAME}.sh
-    S3_JOB_ENVELOPE_SCRIPT=${S3_LOCATION}/cluster/job_envelope_${CLUSTERNAME}.sh
+    S3_JOB_ENVELOPE_SCRIPT=${S3_LOCATION}/cluster/job_envelope.sh
+	S3_QUEUE_UPDATE_SCRIPT=${S3_LOCATION}/cluster/queue_update.sh
     
     printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
     printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
@@ -295,6 +296,8 @@ if [[ $COMMAND = "create" ]]; then
     aws s3 --region ${REGION} cp ${CLOUD_INIT_FILE} ${S3_CLOUD_INIT_SCRIPT}
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/run_node.sh ${S3_RUN_NODE_SCRIPT}
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/job_envelope.sh ${S3_JOB_ENVELOPE_SCRIPT}
+	aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/queue_update.sh ${S3_QUEUE_UPDATE_SCRIPT}
+	
     
     json='{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, 
                "queueid":{"N":"0"}, 
@@ -303,6 +306,7 @@ if [[ $COMMAND = "create" ]]; then
                "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},
                "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},
                "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},
+			   "S3_queue_update_script":{"S":"'${S3_QUEUE_UPDATE_SCRIPT}'"},
                "workers_in_a_node":{"S":"'"${WORKERS_IN_A_NODE}"'"},
                "creator":{"S":"'${USER}'@'${HOSTNAME}'"},
                "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, 
@@ -366,7 +370,7 @@ elif [[ $COMMAND = "submit" ]]; then
                 "maxjobid":{"N":"'"${MAXJOBID}"'"},\
                 "date":{"S":"'"${createddate}"'"},\
                 "creator":{"S":"'"${creator}"'"},\
-                "S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
+                "S3_location":{"S":"'"${S3_LOCATION}"'"}}'\
                 `
 
     #res=`aws dynamodb --region ${REGION} update-item \

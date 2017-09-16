@@ -14,7 +14,9 @@ JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 
 cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
 S3_job_envelope_script=`echo ${cluster_data} | jq -r ".Item.S3_job_envelope_script.S"`
-S3_LOCATION_master=`echo ${cluster_data} | jq -r ".Item.S3_folder.S"`
+S3_queue_update_script=`echo ${cluster_data} | jq -r ".Item.S3_queue_update_script.S"`
+
+S3_LOCATION_master=`echo ${cluster_data} | jq -r ".Item.S3_location.S"`
 
 workers_in_a_node=`echo ${cluster_data} | jq -r ".Item.workers_in_a_node.S"`
 nproc=`nproc`
@@ -59,6 +61,7 @@ NODEID_F=N"$(printf "%05d" $NODEID)"
 mkdir -p ${HOMEDIR}
 printf ${NODEID} > ${HOMEDIR}/node.id
 aws s3 --region ${REGION} cp ${S3_job_envelope_script} ${HOMEDIR}/job_envelope.sh
+aws s3 --region ${REGION} cp ${S3_queue_update_script} ${HOMEDIR}/queue_update.sh
 chmod +x ${HOMEDIR}/job_envelope.sh
 
 

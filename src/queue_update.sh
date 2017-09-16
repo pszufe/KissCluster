@@ -22,7 +22,7 @@ function allocate_new_queue {
     QUEUE_ID=${nextQUEUE_ID}
     
     QUEUE_NAME=`echo $queue_data | jq -r ".Item.queue_name.S"`
-    S3_LOCATION=`echo $queue_data  | jq -r ".Item.S3_folder.S"`
+    S3_LOCATION=`echo $queue_data  | jq -r ".Item.S3_location.S"`
     QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
     QUEUE_FOLDER=${HOMEDIR}/${QUEUE_ID_F}
     
