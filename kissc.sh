@@ -397,7 +397,7 @@ elif [[ $COMMAND = "delete" ]]; then
    echo "Configuration for ${CLUSTERNAME} successfully deleted."
 elif [[ $COMMAND = "list" ]]; then
     echo "cluster\tnodes\tqueues\tcreated\tS3"
-    aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\ t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"'
+    aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"'
    
 fi
 
