@@ -8,14 +8,15 @@ S3_LOCATION_master=$5
 CLUSTERDATE=$6
 RUN_ID=$7
 
+set -e
 
 JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
-CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
+NODESTABLE="kissc_nodes_${CLUSTERNAME}"
 QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
 
 
 
-node_data=`aws dynamodb --region ${REGION} get-item --table-name ${NODESTABLE} --key '{"nodeid":{"N":"'${NODEID}'"}}'`
+node_data=`aws --region ${REGION} dynamodb get-item --table-name ${NODESTABLE} --key '{"nodeid":{"N":"'${NODEID}'"}}'`
 QUEUE_ID=`echo ${node_data} | jq -r ".Item.currentqueueid.N"`
 if [[ ${QUEUE_ID} == 0 ]];then
    echo "No job queue submitted yet"
