@@ -104,7 +104,7 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
             "instance_type":{"S":"'${instance_type}'"},\
             "iam_profile":{"S":"'${iam_profile}'"},\
             "az":{"S":"'${az}'"},\
-            "security_groups":{"S":"'${security_groups}'"}}' `
+            "security_groups":{"S":"'${security_groups}'"}}'`
 
 flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
 
