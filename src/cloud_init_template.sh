@@ -1,7 +1,7 @@
 sudo apt update --yes
 sudo apt install awscli jq --yes
 set -e
-sudo su - ${USERNAME}
+#sudo su - ${USERNAME}
 [[ "${USERNAME}" = "root" ]] && USER_HOME=/root || \
     USER_HOME=/home/${USERNAME}
 HOMEDIR=${USER_HOME}/kissc-${CLUSTERNAME}
@@ -14,5 +14,5 @@ cd ${HOMEDIR}
 echo "Now running the command:"
 echo "bash run_node_${CLUSTERNAME}.sh ${REGION} ${CLUSTERNAME} \
     ${HOMEDIR} ${USERNAME} ${USER_HOME}"
-bash run_node_${CLUSTERNAME}.sh ${REGION} ${CLUSTERNAME} \
+sudo bash run_node_${CLUSTERNAME}.sh ${REGION} ${CLUSTERNAME} \
     ${HOMEDIR} ${USERNAME} ${USER_HOME}
