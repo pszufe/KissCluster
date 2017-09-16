@@ -27,12 +27,12 @@ fi
 queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'${QUEUE_ID}'"}}'`
 maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
 jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
-	if [[ ${jobid} -gt ${maxjobid} ]]; then
-		echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
-		flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
-		sleep 10
-		exit 0
-	fi
+    if [[ ${jobid} -gt ${maxjobid} ]]; then
+        echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
+        flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+        sleep 10
+        exit 0
+    fi
 
 
 
@@ -83,11 +83,11 @@ out_txt_size=`stat --printf="%s" ${filepath_log}`
 log_error_size=`stat --printf="%s" ${filepath_error}`
 
 #if [[ $out_txt_size -gt 256 ]]; then
-#	log_txt=${log_txt}"(...)"
+#    log_txt=${log_txt}"(...)"
 #fi
 
 #if [[ $log_error_size -gt 256 ]]; then
-#	log_error=${log_error}"(...)"
+#    log_error=${log_error}"(...)"
 #fi
 
 

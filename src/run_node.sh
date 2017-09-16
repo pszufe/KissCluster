@@ -21,19 +21,19 @@ nproc=`nproc`
 eval max_procs=$workers_in_a_node
 
 if [[ -z "$max_procs" ]];then
-	echo "Error: ${workers_in_a_node} evaluated to an empty string - using number of cores instead"
-	max_procs=`nproc`
+    echo "Error: ${workers_in_a_node} evaluated to an empty string - using number of cores instead"
+    max_procs=`nproc`
 fi
 
 
 publickey=`echo ${cluster_data} | jq -r ".Item.publickey.S"`
 
 if [[ ! -z "${publickey}" ]];then
-	mkdir -p ${USERHOME}/.ssh
-	priv_key_file=${USERHOME}/.ssh/${CLUSTERNAME}-private.key
-	echo ${cluster_data} | jq -r ".Item.privatekey.S" > ${priv_key_file}
-	echo "${publickey}"  >> ${USERHOME}/.ssh/authorized_keys
-	printf "User ${USERNAME}\nPubKeyAuthentication yes\nIdentityFile ${priv_key_file}\nStrictHostKeyChecking no" > ${USERHOME}/.ssh/config
+    mkdir -p ${USERHOME}/.ssh
+    priv_key_file=${USERHOME}/.ssh/${CLUSTERNAME}-private.key
+    echo ${cluster_data} | jq -r ".Item.privatekey.S" > ${priv_key_file}
+    echo "${publickey}"  >> ${USERHOME}/.ssh/authorized_keys
+    printf "User ${USERNAME}\nPubKeyAuthentication yes\nIdentityFile ${priv_key_file}\nStrictHostKeyChecking no" > ${USERHOME}/.ssh/config
 
 fi 
 
@@ -93,22 +93,22 @@ echo "Number of available vCPU cores: `nproc` number of processes: ${max_procs}"
 
 echo "Node information will be written to DynamoFB table: ${NODESTABLE}"
 res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
-	--item '{"nodeid":{"N":"'${NODEID}'"},\
-	        "currentqueueid":{"N":"0"},\
-	        "nodedate":{"S":"'${createddate}'"},\
-			"clusterdate":{"S":"'${CLUSTERDATE}'"},\
-			"nproc":{"S":"'${max_procs}'"},"logfile":{"S":"'${logfile}'"},\
-			"hostname":{"S":"'${hostname}'"},\
-			"ip":{"S":"'${ip}'"},"ami_id":{"S":"'${ami_id}'"},\
-			"instance_id":{"S":"'${instance_id}'"},\
-			"instance_type":{"S":"'${instance_type}'"},\
-			"iam_profile":{"S":"'${iam_profile}'"},\
-			"az":{"S":"'${az}'"},\
-			"security_groups":{"S":"'${security_groups}'"}}' `
+    --item '{"nodeid":{"N":"'${NODEID}'"},\
+            "currentqueueid":{"N":"0"},\
+            "nodedate":{"S":"'${createddate}'"},\
+            "clusterdate":{"S":"'${CLUSTERDATE}'"},\
+            "nproc":{"S":"'${max_procs}'"},"logfile":{"S":"'${logfile}'"},\
+            "hostname":{"S":"'${hostname}'"},\
+            "ip":{"S":"'${ip}'"},"ami_id":{"S":"'${ami_id}'"},\
+            "instance_id":{"S":"'${instance_id}'"},\
+            "instance_type":{"S":"'${instance_type}'"},\
+            "iam_profile":{"S":"'${iam_profile}'"},\
+            "az":{"S":"'${az}'"},\
+            "security_groups":{"S":"'${security_groups}'"}}' `
 
 flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
 
-			
+            
 nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$max_procs bash ${HOME_DIR}/job_envelope.sh "${REGION}" "${CLUSTERNAME}" "${HOME_DIR}" "${NODEID}" "${S3_LOCATION_master}" "${CLUSTERDATE}" &>> $logfile &
 
 echo "Node ${NODEID} has been successfully started."

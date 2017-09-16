@@ -9,15 +9,16 @@ BASH_FILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 function basic_usage {
-   echo "usage: kissc.sh <command> [parameters] clustername@region"
+   echo "usage: kissc.sh <command> [parameters] [clustername@]region"
    echo "region : AWS region where the cluster information will be stored (e.g. us-east-1)"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
    fi
    echo "The following commands are available:"
-   echo "create : Creates a cluster in the given region with the given name. If the cluster already exists its data will be reset."
+   echo "create : Creates a cluster."
    echo "submit : Submits a job to the cluster"
    echo "delete : Deletes a cluster"
+   echo "list : List clusters "
    echo "Run kissc.sh <command> help to see help for a specific command"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
@@ -39,7 +40,21 @@ function usage_create {
     echo "--user username - username that will be used on cluster nodes, defaults to 'ubuntu'"
     echo "clustername@region - name and region of your cluster"
     if [[ -n "$2" ]]; then
-        echo "kissc: error: $2"
+        echo "kissc create: error: $2"
+    fi
+    exit $1
+}
+
+
+function usage_list {
+    if [[ -n "$2" ]]; then
+        echo "kissc list: error: $2"
+    fi
+    echo "Usage:"
+    echo "kissc.sh list region"
+    echo "Lists all clusters in the given region."
+    if [[ -n "$2" ]]; then
+        echo "kissc list: error: $2"
     fi
     exit $1
 }
@@ -56,7 +71,7 @@ function usage_delete {
     echo "If you run your nodes in AWS you should try to terminate them manually"
     echo "clustername@region - name and region of your cluster"
     if [[ -n "$2" ]]; then
-        echo "kissc: error: $2"
+        echo "kissc delete: error: $2"
     fi
     exit $1
 }
@@ -83,7 +98,7 @@ function usage_submit {
     echo "--queue_name queue_name a label that will describe a particular queue created if the command parameter is given (optional)"
     echo "clustername@region - name and region of your cluster"
     if [[ -n "$2" ]]; then
-        echo "kissc: error: $2"
+        echo "kissc submit: error: $2"
     fi
     exit $1
 }
@@ -101,6 +116,8 @@ if [[ "$2" == "help" ]]; then
       usage_submit 0
     elif [[ $COMMAND = "delete" ]]; then
        usage_delete 0
+    elif [[ $COMMAND = "list" ]]; then
+       usage_list 0
     fi
     basic_usage 1 "Unexpected error"
 fi
@@ -167,13 +184,21 @@ esac
 shift
 done
 
-
-if [[ -n $1 ]]; then
+if [[ $COMMAND = "list" ]]; then
+    if [[ -z "$1" ]]; then
+       usage_list 1 "Region not given"
+    fi
+fi
+if [[ -n "$1" ]]; then
     vals=(${1//@/ })
     CLUSTERNAME=${vals[0]}
     REGION=${vals[1]}
     if [[ -z ${REGION} ]]; then
-       basic_usage 1 "The last parameter does not contain region name. Should be clustername@regionname"
+        if [[ $COMMAND = "list" ]]; then
+            REGION=${CLUSTERNAME}
+        else
+            basic_usage 1 "The last parameter does not contain region name. Should be clustername@regionname"
+        fi
     fi
     if [[ -z ${QUEUE_NAME} ]]; then
        QUEUE_NAME=${CLUSTERNAME}
@@ -229,7 +254,7 @@ if [[ $COMMAND = "create" ]]; then
 
     echo "Setting the counters and configuration for ${CLUSTERNAME}"
 
-	
+    
 
     dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
 
@@ -291,79 +316,78 @@ if [[ $COMMAND = "create" ]]; then
     printf "Now you can simply run ${CLOUD_INIT_FILE} on any Linux machine having AWS CLI configured to start processing on your cluster. \n"
     printf "${CLOUD_INIT_FILE} can also be used as a cloud-init configuration for AWS EC2 instances. \n"
 
-
 elif [[ $COMMAND = "submit" ]]; then
-	if [[ -z $S3 ]]; then
-		usage_submit 1 "missing --s3_bucket parameter"
-	fi
-	if [[ -z $job_command ]]; then
-		usage_submit 1 "missing --job_command parameter"
-	fi
-	if [[ -z $HOME_DIR ]]; then
-		usage_submit 1 "missing --folder parameter"
-	fi
+    if [[ -z $S3 ]]; then
+        usage_submit 1 "missing --s3_bucket parameter"
+    fi
+    if [[ -z $job_command ]]; then
+        usage_submit 1 "missing --job_command parameter"
+    fi
+    if [[ -z $HOME_DIR ]]; then
+        usage_submit 1 "missing --folder parameter"
+    fi
 
-	QUEUE_ID=`aws dynamodb --region ${REGION} update-item \
-	--table-name kissc_clusters \
-	--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
-	--update-expression "SET queueid = queueid + :incr" \
-	--expression-attribute-values '{":incr":{"N":"1"}}' \
-	--return-values UPDATED_NEW | jq -r ".Attributes.queueid.N"`
+    QUEUE_ID=`aws dynamodb --region ${REGION} update-item \
+    --table-name kissc_clusters \
+    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+    --update-expression "SET queueid = queueid + :incr" \
+    --expression-attribute-values '{":incr":{"N":"1"}}' \
+    --return-values UPDATED_NEW | jq -r ".Attributes.queueid.N"`
 
-	if [[ -z ${QUEUE_ID} ]];then 
-		usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc.sh create to create the cluster first."
-	fi
+    if [[ -z ${QUEUE_ID} ]];then 
+        usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc.sh create to create the cluster first."
+    fi
 
-	QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
+    QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
 
-	S3_LOCATION=${S3}/${CLUSTERNAME}/${QUEUE_ID_F}
+    S3_LOCATION=${S3}/${CLUSTERNAME}/${QUEUE_ID_F}
 
-	echo "Creating a queue ${QUEUE_ID_F} at ${S3_LOCATION}"
+    echo "Creating a queue ${QUEUE_ID_F} at ${S3_LOCATION}"
 
-	echo Deleting S3 folder ${S3_LOCATION}/app
-	res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
-	tmpname=`tempfile`
-	printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
-	echo "copying application data to S3" 
-	aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
-	aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job.sh
+    echo Deleting S3 folder ${S3_LOCATION}/app
+    res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
+    tmpname=`tempfile`
+    printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
+    echo "copying application data to S3" 
+    aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
+    aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job.sh
 
-	jobid=$((${MINJOBID}-1))
-	createddate=$(date '+%Y%m%dT%H%M%SZ')
-	creator="${USER}@${HOSTNAME}"
+    jobid=$((${MINJOBID}-1))
+    createddate=$(date '+%Y%m%dT%H%M%SZ')
+    creator="${USER}@${HOSTNAME}"
 
-	res=`aws dynamodb --region ${REGION} put-item --table-name ${QUEUESTABLE} \
-		--item '{"queueid":{"N":"'"${QUEUE_ID}"'"}, \
-				"qstatus":{"S":"created"},\
-				"queue_name":{"S":"'"${QUEUE_NAME}"'"},\
-				"command":{"S":"'"${COMMAND}"'"},\
-				"jobid":{"N":"'"${jobid}"'"},\
-				"minjobid":{"N":"'"${MINJOBID}"'"},\
-				"maxjobid":{"N":"'"${MAXJOBID}"'"},\
-				"date":{"S":"'"${createddate}"'"},\
-				"creator":{"S":"'"${creator}"'"},\
-				"S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
-				`
+    res=`aws dynamodb --region ${REGION} put-item --table-name ${QUEUESTABLE} \
+        --item '{"queueid":{"N":"'"${QUEUE_ID}"'"}, \
+                "qstatus":{"S":"created"},\
+                "queue_name":{"S":"'"${QUEUE_NAME}"'"},\
+                "command":{"S":"'"${COMMAND}"'"},\
+                "jobid":{"N":"'"${jobid}"'"},\
+                "minjobid":{"N":"'"${MINJOBID}"'"},\
+                "maxjobid":{"N":"'"${MAXJOBID}"'"},\
+                "date":{"S":"'"${createddate}"'"},\
+                "creator":{"S":"'"${creator}"'"},\
+                "S3_folder":{"S":"'"${S3_LOCATION}"'"}}'\
+                `
 
-	#res=`aws dynamodb --region ${REGION} update-item \
-	#	--table-name kissc_clusters \
-	#	--key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
-	#	--update-expression "SET currentqueueid = :queueid" \
-	#	--condition-expression "currentqueueid = :zero" \
-	#	--expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
-	#	--return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
-	#if [[ "${res}" = "${QUEUE_ID}" ]];then
-	#	echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
-	#	aws dynamodb --region ${REGION} update-item \
-	#		--table-name ${QUEUESTABLE} \
-	#		--key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
-	#
-	#	--update-expression "SET qstatus = :newstatus" \
-	#		--condition-expression "qstatus = :oldstatus" \
-	#		--expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
-	#fi
+    #res=`aws dynamodb --region ${REGION} update-item \
+    #    --table-name kissc_clusters \
+    #    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
+    #    --update-expression "SET currentqueueid = :queueid" \
+    #    --condition-expression "currentqueueid = :zero" \
+    #    --expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
+    #    --return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
+    #if [[ "${res}" = "${QUEUE_ID}" ]];then
+    #    echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
+    #    aws dynamodb --region ${REGION} update-item \
+    #        --table-name ${QUEUESTABLE} \
+    #        --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
+    #
+    #    --update-expression "SET qstatus = :newstatus" \
+    #        --condition-expression "qstatus = :oldstatus" \
+    #        --expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
+    #fi
 
-	echo "The queue ${QUEUE_ID_F} has been successfully created"
+    echo "The queue ${QUEUE_ID_F} has been successfully created"
 
 elif [[ $COMMAND = "delete" ]]; then
    echo "Deleting the counters and configuration for ${CLUSTERNAME}"
@@ -371,6 +395,10 @@ elif [[ $COMMAND = "delete" ]]; then
           --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
    dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
    echo "Configuration for ${CLUSTERNAME} successfully deleted."
+elif [[ $COMMAND = "list" ]]; then
+    echo "cluster\tnodes\tqueues\tcreated\tS3"
+    aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\ t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"'
+   
 fi
 
 
