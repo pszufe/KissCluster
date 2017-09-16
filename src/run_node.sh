@@ -63,6 +63,7 @@ printf ${NODEID} > ${HOMEDIR}/node.id
 aws s3 --region ${REGION} cp ${S3_job_envelope_script} ${HOMEDIR}/job_envelope.sh
 aws s3 --region ${REGION} cp ${S3_queue_update_script} ${HOMEDIR}/queue_update.sh
 chmod +x ${HOMEDIR}/job_envelope.sh
+chmod +x ${HOMEDIR}/queue_update.sh
 
 
 hostname=`curl -s http://169.254.169.254/latest/meta-data/public-hostname`
