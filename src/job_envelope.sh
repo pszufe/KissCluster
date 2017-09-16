@@ -79,6 +79,10 @@ jobenddate=$(date '+%Y%m%dT%H%M%SZ')
 end_time=$(date +%s)
 job_duration_s=$(( end_time - start_time ))
 
+if [[ $job_duration_s -lt 2 ]]; then
+    sleep 1
+fi
+
 out_txt_size=`stat --printf="%s" ${filepath_log}`
 log_error_size=`stat --printf="%s" ${filepath_error}`
 
