@@ -50,7 +50,7 @@ function allocate_new_queue {
 
 if [[ ${QUEUE_ID} == 0 ]]; then
     QUEUE_ID=`allocate_new_queue ${QUEUE_ID}`
-elif 
+else 
     queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'${QUEUE_ID}'"}}'`
     maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
     jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
