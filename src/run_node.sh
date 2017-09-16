@@ -14,7 +14,7 @@ JOBSTABLE="kissc_jobs_${CLUSTERNAME}"
 
 cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
 S3_job_envelope_script=`echo ${cluster_data} | jq -r ".Item.S3_job_envelope_script.S"`
-S3_LOCATION_master=`echo ${cluster_data} | jq -r ".Item.S3_folder.S"
+S3_LOCATION_master=`echo ${cluster_data} | jq -r ".Item.S3_folder.S"`
 
 workers_in_a_node=`echo ${cluster_data} | jq -r ".Item.workers_in_a_node.S"`
 nproc=`nproc`

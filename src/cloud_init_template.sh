@@ -1,11 +1,12 @@
 sudo apt update --yes
 sudo apt install awscli jq --yes
-sudo su - ${USERNAME}
 set -e
+sudo su - ${USERNAME}
 [[ "${USERNAME}" = "root" ]] && USER_HOME=/root || \
     USER_HOME=/home/${USERNAME}
 HOMEDIR=${USER_HOME}/kissc-${CLUSTERNAME}
-mkdir -p ${HOMEDIR} 
+sudo install -d -o ${USERNAME} -g ${USERNAME} ${HOMEDIR} 
+
 echo "Copying node file to ${HOMEDIR}/run_node_${CLUSTERNAME}.sh"
 aws  --region ${REGION} s3 cp ${S3_RUN_NODE_SCRIPT} \
     ${HOMEDIR}/run_node_${CLUSTERNAME}.sh
