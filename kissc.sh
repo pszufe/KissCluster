@@ -140,7 +140,7 @@ while [[ $# -gt 1 ]]
 do
 key="$1"
 case $key in
-    -c|--command)
+    -c|--job_command)
     job_command="$2"
     shift
     ;;
@@ -176,9 +176,7 @@ case $key in
     shift
     ;;
     *)
-    ERROR=1
-    echo "Error: Unknown option $key"
-    break;
+    basic_usage 1 "Unknown option $key"
     ;;
 esac
 shift
