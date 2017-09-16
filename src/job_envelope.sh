@@ -14,27 +14,26 @@ CLUSTERTABLE="kissc_cluster_${CLUSTERNAME}"
 QUEUESTABLE="kissc_queues_${CLUSTERNAME}"
 
 
-mkdir -p ${HOME_DIR}/app/
-mkdir -p ${HOME_DIR}/res/
-mkdir -p ${HOME_DIR}/log/
 
-#QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
+node_data=`aws dynamodb --region ${REGION} get-item --table-name ${NODESTABLE} --key '{"nodeid":{"N":"'${NODEID}'"}}'`
+QUEUE_ID=`echo ${node_data} | jq -r ".Item.currentqueueid.N"`
+if [[ ${QUEUE_ID} == 0 ]];then
+   echo "No job queue submitted yet"
+   flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+   sleep 10 
+   exit 0
+fi
 
-echo Synchronizing files...
-QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
-S3_LOCATION=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.S3_folder.S"`
-QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
+queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'${QUEUE_ID}'"}}'`
+maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
+jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
+	if [[ ${jobid} -gt ${maxjobid} ]]; then
+		echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
+		flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+		sleep 10
+		exit 0
+	fi
 
-echo "aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null"
-aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${HOME_DIR}/app/ &> /dev/null
-
-aws s3 --region ${REGION} cp ${S3_LOCATION}/app/job.sh ${HOME_DIR}/app/job.sh
-chmod +x ${HOME_DIR}/app/job.sh
-
-
-
-#QUEUE_ID=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.currentqueueid.N"`
-#QUEUE_NAME=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' | jq -r ".Item.queue_name.S"`
 
 
 JOB_ID=`aws dynamodb --region ${REGION} update-item \
@@ -49,14 +48,16 @@ RUN_ID_F="$(printf "%09d" $RUN_ID)"
 JOB_ID_F="$(printf "%09d" $JOB_ID)"
 NODEID_F="$(printf "%05d" $NODEID)"
 
+QUEUE_FOLDER=${HOME_DIR}/${QUEUE_ID_F}
+S3_LOCATION=${S3_LOCATION_master}/${QUEUE_ID_F}
 
 echo "Running: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"
 
 filename_log="N${NODEID_F}_${QUEUE_ID_F}_R${RUN_ID_F}_J${JOB_ID_F}.log.txt"
-filepath_log=${HOME_DIR}/res/${filename_log}
+filepath_log=${QUEUE_FOLDER}/${filename_log}
 
 filename_error="N${NODEID_F}_R${RUN_ID_F}_J${JOB_ID_F}.error.txt"
-filepath_error=${HOME_DIR}/log/${filename_error}
+filepath_error=${QUEUE_FOLDER}/${filename_error}
 
 jobstartdate=$(date '+%Y%m%dT%H%M%SZ')
 start_time=$(date +%s)
@@ -71,7 +72,7 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${JOBSTABLE} \
             `
 
 
-cd ${HOME_DIR}/app
+cd ${QUEUE_FOLDER}/app
 ./job.sh $JOB_ID > ${filepath_log} 2> ${filepath_error}
 exit_status=$?
 jobenddate=$(date '+%Y%m%dT%H%M%SZ')
@@ -93,8 +94,8 @@ log_error_size=`stat --printf="%s" ${filepath_error}`
 gzip $filepath_log
 gzip $filepath_error
 
-S3_log=${S3_LOCATION}/res/${CLUSTERDATE}
-S3_error=${S3_LOCATION}/log/std_error_${CLUSTERDATE}
+S3_log=${S3_LOCATION}/std_out_${CLUSTERDATE}
+S3_error=${S3_LOCATION}/std_error_${CLUSTERDATE}
 
 aws s3 --region ${REGION} cp ${filepath_log}.gz ${S3_log}/
 aws s3 --region ${REGION} cp ${filepath_error}.gz ${S3_error}/
