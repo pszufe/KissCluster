@@ -30,8 +30,8 @@ function allocate_new_queue {
     
     
     
-    mkdir -p ${QUEUE_FOLDER}/app
-    mkdir -p ${QUEUE_FOLDER}/res/
+    mkdir -p ${QUEUE_FOLDER}/app/
+    mkdir -p ${QUEUE_FOLDER}/err/
     mkdir -p ${QUEUE_FOLDER}/log/
 
     echo "aws s3 --region ${REGION} sync ${S3_LOCATION}/app/ ${QUEUE_FOLDER}/app/ &> /dev/null"
@@ -43,7 +43,7 @@ function allocate_new_queue {
     --table-name ${NODESTABLE} \
     --key '{"nodeid":{"N":"'"${NODEID}"'"}}' \
     --update-expression "SET currentqueueid = :currentqueueid" \
-    --expression-attribute-values '{":currentqueueid":{"N":"${}"}}' \
+    --expression-attribute-values '{":currentqueueid":{"N":"'"${QUEUE_ID}"'"}}' \
     --return-values UPDATED_NEW | jq -r ".Attributes.jobid.N"`
     printf ${QUEUE_ID} > ${HOMEDIR}/queue.id
 }
@@ -54,7 +54,7 @@ else
     queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'${QUEUE_ID}'"}}'`
     maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
     jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
-    if [[ ${jobid} -gt ${maxjobid} ]]; then
-        QUEUE_ID=allocate_new_queue ${QUEUE_ID}
+    if [[ ${jobid} -ge ${maxjobid} ]]; then
+        QUEUE_ID=`allocate_new_queue ${QUEUE_ID}`
     fi
 fi

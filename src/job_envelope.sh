@@ -28,14 +28,13 @@ fi
 queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE} --key '{"queueid":{"N":"'${QUEUE_ID}'"}}'`
 maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
 jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
-    if [[ ${jobid} -gt ${maxjobid} ]]; then
-        echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
-        flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
-        sleep 10
-        exit 0
-    fi
-
-
+if [[ ${jobid} -gt ${maxjobid} ]]; then
+	echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
+	flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
+	sleep 10
+	exit 0
+fi
+QUEUE_NAME=`echo $queue_data  | jq -r ".Item.queue_name.S"`
 
 JOB_ID=`aws dynamodb --region ${REGION} update-item \
     --table-name ${QUEUESTABLE} \
@@ -55,10 +54,10 @@ S3_LOCATION=${S3_LOCATION_master}/${QUEUE_ID_F}
 echo "Running: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"
 
 filename_log="N${NODEID_F}_${QUEUE_ID_F}_R${RUN_ID_F}_J${JOB_ID_F}.log.txt"
-filepath_log=${QUEUE_FOLDER}/${filename_log}
+filepath_log=${QUEUE_FOLDER}/log/${filename_log}
 
 filename_error="N${NODEID_F}_R${RUN_ID_F}_J${JOB_ID_F}.error.txt"
-filepath_error=${QUEUE_FOLDER}/${filename_error}
+filepath_error=${QUEUE_FOLDER}/err/${filename_error}
 
 jobstartdate=$(date '+%Y%m%dT%H%M%SZ')
 start_time=$(date +%s)

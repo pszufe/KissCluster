@@ -352,7 +352,7 @@ elif [[ $COMMAND = "submit" ]]; then
     echo Deleting S3 folder ${S3_LOCATION}/app
     res=`aws s3 --region ${REGION} rm --recursive ${S3_LOCATION}/app`
     tmpname=`tempfile`
-    printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
+    printf "#!/bin/bash\n\n${job_command} \$1" > ${tmpname}
     echo "copying application data to S3" 
     aws s3 --region ${REGION} cp --recursive ${HOMEDIR} ${S3_LOCATION}/app
     aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job.sh
@@ -365,7 +365,7 @@ elif [[ $COMMAND = "submit" ]]; then
         --item '{"queueid":{"N":"'"${QUEUE_ID}"'"}, \
                 "qstatus":{"S":"created"},\
                 "queue_name":{"S":"'"${QUEUE_NAME}"'"},\
-                "command":{"S":"'"${COMMAND}"'"},\
+                "command":{"S":"'"${job_command}"'"},\
                 "jobid":{"N":"'"${jobid}"'"},\
                 "minjobid":{"N":"'"${MINJOBID}"'"},\
                 "maxjobid":{"N":"'"${MAXJOBID}"'"},\
