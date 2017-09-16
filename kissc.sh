@@ -82,7 +82,7 @@ function usage_submit {
         echo "kissc submit: error: $2"
     fi
     echo "Usage:"
-    echo "kissc.sh submit --job_command job_command --folder folder --s3_bucket s3_bucket [other parameters] clustername@region"
+    echo "kissc.sh submit --job_command job_command --folder folder [other parameters] clustername@region"
     echo ""
     echo "Supported parameters:"
     echo "--job_command job_command - job command to be executed on each node (commands run on cluster). "
@@ -217,7 +217,7 @@ NODESTABLE="kissc_nodes_${CLUSTERNAME}"
 
 
 if [[ $COMMAND = "create" ]]; then
-    if [[ -z $S3 ]]; then
+    if [[ -z "$S3" ]]; then
         usage_create 1 "missing --s3_bucket parameter"
     fi
     S3_LOCATION=${S3}/${CLUSTERNAME}
@@ -321,13 +321,16 @@ if [[ $COMMAND = "create" ]]; then
     printf "${CLOUD_INIT_FILE} can also be used as a cloud-init configuration for AWS EC2 instances. \n"
 
 elif [[ $COMMAND = "submit" ]]; then
-    if [[ -z $S3 ]]; then
-        usage_submit 1 "missing --s3_bucket parameter"
+    if [[ -z "$S3" ]]; then
+        S3=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_location.S"`
+		if [[ -z "$S3" ]]; then
+			usage_submit 1 "missing --s3_bucket parameter and no information found in kissc_clusters table"
+		fi
     fi
-    if [[ -z $job_command ]]; then
+    if [[ -z "$job_command" ]]; then
         usage_submit 1 "missing --job_command parameter"
     fi
-    if [[ -z $HOMEDIR ]]; then
+    if [[ -z "$HOMEDIR" ]]; then
         usage_submit 1 "missing --folder parameter"
     fi
 
@@ -372,24 +375,6 @@ elif [[ $COMMAND = "submit" ]]; then
                 "creator":{"S":"'"${creator}"'"},\
                 "S3_location":{"S":"'"${S3_LOCATION}"'"}}'\
                 `
-
-    #res=`aws dynamodb --region ${REGION} update-item \
-    #    --table-name kissc_clusters \
-    #    --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' \
-    #    --update-expression "SET currentqueueid = :queueid" \
-    #    --condition-expression "currentqueueid = :zero" \
-    #    --expression-attribute-values '{":queueid":{"N":"'"${QUEUE_ID}"'"},":zero":{"N":"0"}}' \
-    #    --return-values UPDATED_NEW  2>/dev/null | jq -r ".Attributes.currentqueueid.N"` 
-    #if [[ "${res}" = "${QUEUE_ID}" ]];then
-    #    echo "The queue ${QUEUE_ID} is the running queue on the ${CLUSTERNAME} cluster."
-    #    aws dynamodb --region ${REGION} update-item \
-    #        --table-name ${QUEUESTABLE} \
-    #        --key '{"queueid":{"N":"'"${QUEUE_ID}"'"}}' \
-    #
-    #    --update-expression "SET qstatus = :newstatus" \
-    #        --condition-expression "qstatus = :oldstatus" \
-    #        --expression-attribute-values '{":oldstatus":{"S":"created"}, ":newstatus":{"S":"running"}  }' 2>/dev/null
-    #fi
 
     echo "The queue ${QUEUE_ID_F} has been successfully created"
 
