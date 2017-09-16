@@ -16,9 +16,9 @@ function basic_usage {
    fi
    echo "The following commands are available:"
    echo "create : Creates a cluster."
-   echo "submit : Submits a job to the cluster"
-   echo "delete : Deletes a cluster"
-   echo "list : List clusters "
+   echo "submit : Submits a job to the cluster."
+   echo "delete : Deletes a cluster."
+   echo "list : List all clusters."
    echo "Run kissc.sh <command> help to see help for a specific command"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
@@ -105,7 +105,7 @@ function usage_submit {
 
 COMMAND=$1
 
-if [[ -z $COMMAND ]] || ! `contains "create submit delete" $COMMAND`; then
+if [[ -z $COMMAND ]] || ! `contains "create submit delete list" $COMMAND`; then
    basic_usage 1 "the following arguments are required: command"
 fi
 
