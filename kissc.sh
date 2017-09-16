@@ -126,7 +126,7 @@ fi
 REGION=""
 CLUSTERNAME=""
 job_command=""
-HOME_DIR=""
+HOMEDIR=""
 S3=""
 MINJOBID=1
 MAXJOBID=1000000000
@@ -145,7 +145,7 @@ case $key in
     shift
     ;;
     -f|--folder)
-    HOME_DIR="$2"
+    HOMEDIR="$2"
     shift
     ;;
     -s|--min_jobid)
@@ -323,7 +323,7 @@ elif [[ $COMMAND = "submit" ]]; then
     if [[ -z $job_command ]]; then
         usage_submit 1 "missing --job_command parameter"
     fi
-    if [[ -z $HOME_DIR ]]; then
+    if [[ -z $HOMEDIR ]]; then
         usage_submit 1 "missing --folder parameter"
     fi
 
@@ -349,7 +349,7 @@ elif [[ $COMMAND = "submit" ]]; then
     tmpname=`tempfile`
     printf "#!/bin/bash\n\n${COMMAND} \$1" > ${tmpname}
     echo "copying application data to S3" 
-    aws s3 --region ${REGION} cp --recursive ${HOME_DIR} ${S3_LOCATION}/app
+    aws s3 --region ${REGION} cp --recursive ${HOMEDIR} ${S3_LOCATION}/app
     aws s3 --region ${REGION} mv ${tmpname} ${S3_LOCATION}/app/job.sh
 
     jobid=$((${MINJOBID}-1))

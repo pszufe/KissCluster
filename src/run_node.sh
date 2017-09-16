@@ -2,7 +2,7 @@
 
 REGION=$1
 CLUSTERNAME=$2
-HOME_DIR=$3
+HOMEDIR=$3
 USERNAME=$4
 USERHOME=$5
 
@@ -56,10 +56,10 @@ echo "Starting cluster node with nodeid: ${NODEID} Node creation date: ${created
 
 NODEID_F=N"$(printf "%05d" $NODEID)"
 
-mkdir -p ${HOME_DIR}
-printf ${NODEID} > ${HOME_DIR}/node.id
-aws s3 --region ${REGION} cp ${S3_job_envelope_script} ${HOME_DIR}/job_envelope.sh
-chmod +x ${HOME_DIR}/job_envelope.sh
+mkdir -p ${HOMEDIR}
+printf ${NODEID} > ${HOMEDIR}/node.id
+aws s3 --region ${REGION} cp ${S3_job_envelope_script} ${HOMEDIR}/job_envelope.sh
+chmod +x ${HOMEDIR}/job_envelope.sh
 
 
 hostname=`curl -s http://169.254.169.254/latest/meta-data/public-hostname`
@@ -87,7 +87,7 @@ echo "Node availability zone: ${az}"
 echo "Configured security groups: ${security_groups}"
 
 
-logfile="${HOME_DIR}/log/${NODEID_F}_${createddate}.log.txt"
+logfile="${HOMEDIR}/log/${NODEID_F}_${createddate}.log.txt"
 
 echo "Number of available vCPU cores: `nproc` number of processes: ${max_procs}"
 
@@ -106,10 +106,10 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
             "az":{"S":"'${az}'"},\
             "security_groups":{"S":"'${security_groups}'"}}'`
 
-flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
 
             
-nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$max_procs bash ${HOME_DIR}/job_envelope.sh "${REGION}" "${CLUSTERNAME}" "${HOME_DIR}" "${NODEID}" "${S3_LOCATION_master}" "${CLUSTERDATE}" &>> $logfile &
+nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$max_procs bash ${HOMEDIR}/job_envelope.sh "${REGION}" "${CLUSTERNAME}" "${HOMEDIR}" "${NODEID}" "${S3_LOCATION_master}" "${CLUSTERDATE}" &>> $logfile &
 
 echo "Node ${NODEID} has been successfully started."
 echo "In order to terminate computations on this node look for the xargs process and kill it (pkill -f xargs)"

@@ -2,7 +2,7 @@
 
 REGION=$1
 CLUSTERNAME=$2
-HOME_DIR=$3
+HOMEDIR=$3
 NODEID=$4
 S3_LOCATION_master=$5
 CLUSTERDATE=$6
@@ -19,7 +19,7 @@ node_data=`aws dynamodb --region ${REGION} get-item --table-name ${NODESTABLE} -
 QUEUE_ID=`echo ${node_data} | jq -r ".Item.currentqueueid.N"`
 if [[ ${QUEUE_ID} == 0 ]];then
    echo "No job queue submitted yet"
-   flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+   flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
    sleep 10 
    exit 0
 fi
@@ -29,7 +29,7 @@ maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
 jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
     if [[ ${jobid} -gt ${maxjobid} ]]; then
         echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
-        flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOME_DIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOME_DIR} ${NODEID}
+        flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
         sleep 10
         exit 0
     fi
@@ -48,7 +48,7 @@ RUN_ID_F="$(printf "%09d" $RUN_ID)"
 JOB_ID_F="$(printf "%09d" $JOB_ID)"
 NODEID_F="$(printf "%05d" $NODEID)"
 
-QUEUE_FOLDER=${HOME_DIR}/${QUEUE_ID_F}
+QUEUE_FOLDER=${HOMEDIR}/${QUEUE_ID_F}
 S3_LOCATION=${S3_LOCATION_master}/${QUEUE_ID_F}
 
 echo "Running: N${NODEID_F} ${QUEUE_ID_F} R${RUN_ID_F} J${JOB_ID_F}"

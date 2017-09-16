@@ -2,7 +2,7 @@
 
 REGION=$1
 CLUSTERNAME=$2
-HOME_DIR=$3
+HOMEDIR=$3
 NODEID=$4
 
 
@@ -24,7 +24,7 @@ function allocate_new_queue {
     QUEUE_NAME=`echo $queue_data | jq -r ".Item.queue_name.S"`
     S3_LOCATION=`echo $queue_data  | jq -r ".Item.S3_folder.S"`
     QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
-    QUEUE_FOLDER=${HOME_DIR}/${QUEUE_ID_F}
+    QUEUE_FOLDER=${HOMEDIR}/${QUEUE_ID_F}
     
     echo "Starting working on a new queue ${QUEUE_ID} with data at ${QUEUE_FOLDER}"
     
@@ -45,7 +45,7 @@ function allocate_new_queue {
     --update-expression "SET currentqueueid = :currentqueueid" \
     --expression-attribute-values '{":currentqueueid":{"N":"${}"}}' \
     --return-values UPDATED_NEW | jq -r ".Attributes.jobid.N"`
-    printf ${QUEUE_ID} > ${HOME_DIR}/queue.id
+    printf ${QUEUE_ID} > ${HOMEDIR}/queue.id
 }
 
 if [[ ${QUEUE_ID} == 0 ]]; then
