@@ -29,10 +29,10 @@ queue_data=`aws dynamodb --region ${REGION} get-item --table-name ${QUEUESTABLE}
 maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
 jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
 if [[ ${jobid} -gt ${maxjobid} ]]; then
-	echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
-	flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
-	sleep 10
-	exit 0
+    echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
+    flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
+    sleep 10
+    exit 0
 fi
 QUEUE_NAME=`echo $queue_data  | jq -r ".Item.queue_name.S"`
 
