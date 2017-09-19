@@ -271,7 +271,7 @@ if [[ $COMMAND = "create" ]]; then
         KEY_FILE=~/.ssh/$KEY_NAME
         echo "Creating a key $KEY_NAME for passwordless SSH in file $KEY_FILE"
         ssh-keygen -P "" -t rsa -f $KEY_FILE
-        printf "\nUser $USERNAME\nPubKeyAuthentication yes\nIdentityFile $KEY_FILE\n" >> ~/.ssh/config
+        printf "\nUser $USERNAME\nPubKeyAuthentication yes\nStrictHostKeyChecking no\nIdentityFile $KEY_FILE\n" >> ~/.ssh/config		
         PUBLIC_KEY_DATA=$(<${KEY_FILE}.pub)
         PUBLIC_KEY_DATA=${PUBLIC_KEY_DATA//$'\n'/\\n}
         PRIVATE_KEY_DATA=$(<${KEY_FILE})
