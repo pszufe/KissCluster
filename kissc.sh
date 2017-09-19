@@ -9,7 +9,7 @@ BASH_FILE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 
 function basic_usage {
-   echo "usage: kissc.sh <command> [parameters] [clustername@]region"
+   echo "usage: kissc <command> [parameters] [clustername@]region"
    echo "region : AWS region where the cluster information will be stored (e.g. us-east-1)"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
@@ -19,7 +19,8 @@ function basic_usage {
    echo "submit : Submits a job to the cluster."
    echo "delete : Deletes a cluster."
    echo "list : List all clusters."
-   echo "Run kissc.sh <command> help to see help for a specific command"
+   echo "nodes : List nodes of a specific cluster."
+   echo "Run kissc <command> help to see help for a specific command"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
    fi
@@ -31,7 +32,7 @@ function usage_create {
         echo "kissc create: error: $2"
     fi
     echo "Usage:"
-    echo "kissc.sh create --s3_bucket s3_bucket [other parameters] clustername@region"
+    echo "kissc create --s3_bucket s3_bucket [other parameters] clustername@region"
     echo "Supported parameters:"
     echo "--s3_bucket s3_bucket - name of an AWS S3 bucket (e.g. s3://mybucketname/) that will be used "
     echo "  to store cluster data."
@@ -45,13 +46,30 @@ function usage_create {
     exit $1
 }
 
+function usage_nodes {
+    if [[ -n "$2" ]]; then
+        echo "kissc nodes: error: $2"
+    fi
+    echo "Lists nodes of this cluster."
+    echo "Usage:"
+    echo "kissc nodes clustername@region"
+    echo "Supported parameters:"
+    echo "clustername@region - name and region of your cluster"
+    if [[ -n "$2" ]]; then
+        echo "kissc nodes: error: $2"
+    fi
+    exit $1
+}
+
+
 
 function usage_list {
     if [[ -n "$2" ]]; then
         echo "kissc list: error: $2"
     fi
+    echo "Lists clusters in a given region."
     echo "Usage:"
-    echo "kissc.sh list region"
+    echo "kissc list region"
     echo "Lists all clusters in the given region."
     if [[ -n "$2" ]]; then
         echo "kissc list: error: $2"
@@ -63,8 +81,9 @@ function usage_delete {
     if [[ -n "$2" ]]; then
         echo "kissc delete: error: $2"
     fi
+    echo "Deletes information about the cluster from DynamoDB. Nodes and S3 data are not affected."
     echo "Usage:"
-    echo "kissc.sh delete clustername@region"
+    echo "kissc delete clustername@region"
     echo "Deletes the given cluster information."
     echo "This operation does not have additional parameters."
     echo "Note that the function call does try to terminate the nodes in any way!"
@@ -81,8 +100,9 @@ function usage_submit {
     if [[ -n "$2" ]]; then
         echo "kissc submit: error: $2"
     fi
+    echo "Submits a job to cluste's queue."
     echo "Usage:"
-    echo "kissc.sh submit --job_command job_command --folder folder [other parameters] clustername@region"
+    echo "kissc submit --job_command job_command --folder folder [other parameters] clustername@region"
     echo ""
     echo "Supported parameters:"
     echo "--job_command job_command - job command to be executed on each node (commands run on cluster). "
@@ -105,7 +125,7 @@ function usage_submit {
 
 COMMAND=$1
 
-if [[ -z $COMMAND ]] || ! `contains "create submit delete list" $COMMAND`; then
+if [[ -z $COMMAND ]] || ! `contains "create submit delete list nodes" $COMMAND`; then
    basic_usage 1 "the following arguments are required: command"
 fi
 
@@ -281,7 +301,7 @@ if [[ $COMMAND = "create" ]]; then
     S3_CLOUD_INIT_SCRIPT=${S3_LOCATION}/${CLOUD_INIT_FILE_NAME}
     S3_RUN_NODE_SCRIPT=${S3_LOCATION}/cluster/run_node_${CLUSTERNAME}.sh
     S3_JOB_ENVELOPE_SCRIPT=${S3_LOCATION}/cluster/job_envelope.sh
-	S3_QUEUE_UPDATE_SCRIPT=${S3_LOCATION}/cluster/queue_update.sh
+    S3_QUEUE_UPDATE_SCRIPT=${S3_LOCATION}/cluster/queue_update.sh
     
     printf "#!/bin/bash\n\n" > ${CLOUD_INIT_FILE}
     printf "CLUSTERNAME=${CLUSTERNAME}\n" >> ${CLOUD_INIT_FILE}
@@ -294,8 +314,8 @@ if [[ $COMMAND = "create" ]]; then
     aws s3 --region ${REGION} cp ${CLOUD_INIT_FILE} ${S3_CLOUD_INIT_SCRIPT}
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/run_node.sh ${S3_RUN_NODE_SCRIPT}
     aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/job_envelope.sh ${S3_JOB_ENVELOPE_SCRIPT}
-	aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/queue_update.sh ${S3_QUEUE_UPDATE_SCRIPT}
-	
+    aws s3 --region ${REGION} cp ${BASH_FILE_DIR}/src/queue_update.sh ${S3_QUEUE_UPDATE_SCRIPT}
+    
     
     json='{"clustername":{"S":"'"${CLUSTERNAME}"'"},"nodeid":{"N":"0"}, 
                "queueid":{"N":"0"}, 
@@ -304,8 +324,9 @@ if [[ $COMMAND = "create" ]]; then
                "S3_node_init_script":{"S":"'${S3_CLOUD_INIT_SCRIPT}'"},
                "S3_run_node_script":{"S":"'${S3_RUN_NODE_SCRIPT}'"},
                "S3_job_envelope_script":{"S":"'${S3_JOB_ENVELOPE_SCRIPT}'"},
-			   "S3_queue_update_script":{"S":"'${S3_QUEUE_UPDATE_SCRIPT}'"},
+               "S3_queue_update_script":{"S":"'${S3_QUEUE_UPDATE_SCRIPT}'"},
                "workers_in_a_node":{"S":"'"${WORKERS_IN_A_NODE}"'"},
+               "username":{"S":"'${USERNAME}'"},
                "creator":{"S":"'${USER}'@'${HOSTNAME}'"},
                "publickey":{"S":"'"${PUBLIC_KEY_DATA}"'"}, 
                "privatekey":{"S":"'"${PRIVATE_KEY_DATA}"'"} }'
@@ -321,9 +342,9 @@ if [[ $COMMAND = "create" ]]; then
 elif [[ $COMMAND = "submit" ]]; then
     if [[ -z "$S3" ]]; then
         S3=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}' | jq -r ".Item.S3_location.S"`
-		if [[ -z "$S3" ]]; then
-			usage_submit 1 "missing --s3_bucket parameter and no information found in kissc_clusters table"
-		fi
+        if [[ -z "$S3" ]]; then
+            usage_submit 1 "missing --s3_bucket parameter and no information found in kissc_clusters table"
+        fi
     fi
     if [[ -z "$job_command" ]]; then
         usage_submit 1 "missing --job_command parameter"
@@ -340,7 +361,7 @@ elif [[ $COMMAND = "submit" ]]; then
     --return-values UPDATED_NEW | jq -r ".Attributes.queueid.N"`
 
     if [[ -z ${QUEUE_ID} ]];then 
-        usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc.sh create to create the cluster first."
+        usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc create to create the cluster first."
     fi
 
     QUEUE_ID_F="Q$(printf "%06d" $QUEUE_ID)_${QUEUE_NAME}"
@@ -385,8 +406,12 @@ elif [[ $COMMAND = "delete" ]]; then
 elif [[ $COMMAND = "list" ]]; then
     printf "cluster\tnodes\tqueues\tcreated date\t\tS3\n"
     aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"' 
+elif [[ $COMMAND = "nodes" ]]; then
+    cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
+    username=`echo ${cluster_data} | jq -r ".Item.username.S"`
+    aws dynamodb --region ${REGION} scan --table-name kissc_nodes | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"' 
+    printf "cluster\tnodes\tqueues\tcreated date\t\tS3\n"
 fi
-
 
 
 

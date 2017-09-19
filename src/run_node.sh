@@ -72,6 +72,8 @@ ami_id=`curl -s http://169.254.169.254/latest/meta-data/ami-id`
 instance_id=`curl -s http://169.254.169.254/latest/meta-data/instance-id`
 instance_type=`curl -s http://169.254.169.254/latest/meta-data/instance-type`
 iam_profile=`curl -s http://169.254.169.254/latest/meta-data/iam/info | jq -r ".InstanceProfileArn" 2>/dev/null`
+privateip=`curl -s http://169.254.169.254/latest/meta-data/local-ipv4`
+
 if [[ -z ${iam_profile} ]]; then
    iam_profile="-"
 fi
@@ -103,19 +105,37 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
             "clusterdate":{"S":"'${CLUSTERDATE}'"},\
             "nproc":{"S":"'${max_procs}'"},"logfile":{"S":"'${logfile}'"},\
             "hostname":{"S":"'${hostname}'"},\
-            "ip":{"S":"'${ip}'"},"ami_id":{"S":"'${ami_id}'"},\
+            "privateip":{"S":"'${privateip}'"},\            
+            "publicip":{"S":"'${ip}'"},"ami_id":{"S":"'${ami_id}'"},\
             "instance_id":{"S":"'${instance_id}'"},\
             "instance_type":{"S":"'${instance_type}'"},\
             "iam_profile":{"S":"'${iam_profile}'"},\
             "az":{"S":"'${az}'"},\
             "security_groups":{"S":"'${security_groups}'"}}'`
 
-flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
 
-            
-nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$max_procs bash ${HOMEDIR}/job_envelope.sh "${REGION}" "${CLUSTERNAME}" "${HOMEDIR}" "${NODEID}" "${S3_LOCATION_master}" "${CLUSTERDATE}" &>> $logfile &
+
 
 echo "Node ${NODEID} has been successfully started."
+
+while true
+do
+    queueid=`echo ${cluster_data} | jq -r ".Item.queueid.N"`
+    if [[ "${queueid}" -gt 0 ]]; then
+       break
+    fi 
+    echo "No queues on the cluster - the main process is sleeping..."
+    sleep 15
+    cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
+done
+
+S3_job_envelope_script=`echo ${cluster_data} | jq -r ".Item.S3_job_envelope_script.S"`
+
+flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
+
+nohup seq 1 100000000 | xargs --max-args=1 --max-procs=$max_procs bash ${HOMEDIR}/job_envelope.sh "${REGION}" "${CLUSTERNAME}" "${HOMEDIR}" "${NODEID}" "${S3_LOCATION_master}" "${CLUSTERDATE}" &>> $logfile &
+
+echo "Now monitoring the queues for jobs"
 echo "In order to terminate computations on this node look for the xargs process and kill it (pkill -f xargs)"
 
 

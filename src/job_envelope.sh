@@ -21,7 +21,7 @@ QUEUE_ID=`echo ${node_data} | jq -r ".Item.currentqueueid.N"`
 if [[ ${QUEUE_ID} == 0 ]];then
    echo "No job queue submitted yet"
    flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
-   sleep 10 
+   sleep 30 
    exit 0
 fi
 
