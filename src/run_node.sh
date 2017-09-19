@@ -105,7 +105,7 @@ res=`aws dynamodb --region ${REGION} put-item --table-name ${NODESTABLE} \
             "clusterdate":{"S":"'${CLUSTERDATE}'"},\
             "nproc":{"S":"'${max_procs}'"},"logfile":{"S":"'${logfile}'"},\
             "hostname":{"S":"'${hostname}'"},\
-            "privateip":{"S":"'${privateip}'"},\            
+            "privateip":{"S":"'${privateip}'"},\
             "publicip":{"S":"'${ip}'"},"ami_id":{"S":"'${ami_id}'"},\
             "instance_id":{"S":"'${instance_id}'"},\
             "instance_type":{"S":"'${instance_type}'"},\

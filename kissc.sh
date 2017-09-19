@@ -409,8 +409,9 @@ elif [[ $COMMAND = "list" ]]; then
 elif [[ $COMMAND = "nodes" ]]; then
     cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
     username=`echo ${cluster_data} | jq -r ".Item.username.S"`
-    aws dynamodb --region ${REGION} scan --table-name kissc_nodes | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"' 
-    printf "cluster\tnodes\tqueues\tcreated date\t\tS3\n"
+    echo REGION=${REGION}
+    echo NODESTABLE=${NODESTABLE}
+    aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"' 
 fi
 
 
