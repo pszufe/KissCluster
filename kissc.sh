@@ -20,6 +20,7 @@ function basic_usage {
    echo "delete : Deletes a cluster."
    echo "list : List all clusters."
    echo "nodes : List nodes of a specific cluster."
+   echo "queues : List queues of a specific cluster."
    echo "Run kissc <command> help to see help for a specific command"
    if [[ -n "$2" ]]; then
      echo "kissc: error: $2"
@@ -61,6 +62,20 @@ function usage_nodes {
     exit $1
 }
 
+function usage_queues {
+    if [[ -n "$2" ]]; then
+        echo "kissc queues: error: $2"
+    fi
+    echo "Lists queues of this cluster."
+    echo "Usage:"
+    echo "kissc queues clustername@region"
+    echo "Supported parameters:"
+    echo "clustername@region - name and region of your cluster"
+    if [[ -n "$2" ]]; then
+        echo "kissc queues: error: $2"
+    fi
+    exit $1
+}
 
 
 function usage_list {
@@ -125,7 +140,7 @@ function usage_submit {
 
 COMMAND=$1
 
-if [[ -z $COMMAND ]] || ! `contains "create submit delete list nodes" $COMMAND`; then
+if [[ -z $COMMAND ]] || ! `contains "create submit delete list nodes queues" $COMMAND`; then
    basic_usage 1 "the following arguments are required: command"
 fi
 
@@ -138,6 +153,10 @@ if [[ "$2" == "help" ]]; then
        usage_delete 0
     elif [[ $COMMAND = "list" ]]; then
        usage_list 0
+    elif [[ $COMMAND = "nodes" ]]; then
+       usage_nodes 0
+    elif [[ $COMMAND = "queues" ]]; then
+       usage_queues 0
     fi
     basic_usage 1 "Unexpected error"
 fi
@@ -360,7 +379,7 @@ elif [[ $COMMAND = "submit" ]]; then
     --expression-attribute-values '{":incr":{"N":"1"}}' \
     --return-values UPDATED_NEW | jq -r ".Attributes.queueid.N"`
 
-    if [[ -z ${QUEUE_ID} ]];then 
+    if [[ -z ${QUEUE_ID} ]];then
         usage_submit 1  "The cluster ${CLUSTERNAME} does not exist in the region ${REGION}. Use kissc create to create the cluster first."
     fi
 
@@ -404,14 +423,15 @@ elif [[ $COMMAND = "delete" ]]; then
    dynamoDBdroptable "${NODESTABLE} ${QUEUESTABLE} ${JOBSTABLE}"
    echo "Configuration for ${CLUSTERNAME} successfully deleted."
 elif [[ $COMMAND = "list" ]]; then
-    printf "cluster\tnodes\tqueues\tcreated date\t\tS3\n"
-    aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"' 
+    printf "cluster\tnodes\tqueues\tcreated date        \tS3\n"
+    aws dynamodb --region ${REGION} scan --table-name kissc_clusters | jq -r '.Items[] | "\(.clustername.S)\t\(.nodeid.N)\t\(.queueid.N)\t\(.date.S)\t\(.S3_location.S)"'
 elif [[ $COMMAND = "nodes" ]]; then
     cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
     username=`echo ${cluster_data} | jq -r ".Item.username.S"`
-    echo REGION=${REGION}
-    echo NODESTABLE=${NODESTABLE}
-    aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"' 
+    aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"'
+elif [[ $COMMAND = "queues" ]]; then
+    printf "q_id\tstatus\tjobid\tminjob\tmaxjob        \tS3 result location            \tcommand\n"
+    aws dynamodb --region ${REGION} scan --table-name ${QUEUESTABLE} | jq -r '.Items[] | "\(.queueid.N)\t\(.qstatus.S)\t\(.jobid.N)\t\(.minjobid.N)\t\(.maxjobid.N)\t\(.S3_location.S)\t\(.command.S)"'
 fi
 
 
