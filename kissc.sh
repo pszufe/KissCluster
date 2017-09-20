@@ -55,6 +55,7 @@ function usage_nodes {
     echo "Usage:"
     echo "kissc nodes clustername@region"
     echo "Supported parameters:"
+    echo "--show_nproc yes - will show the number of workers at each node"
     echo "clustername@region - name and region of your cluster"
     if [[ -n "$2" ]]; then
         echo "kissc nodes: error: $2"
@@ -172,7 +173,7 @@ MAXJOBID=1000000000
 QUEUE_NAME=""
 KEY_NAME=""
 USERNAME=ubuntu
-
+SHOW_NPROC="no"
 shift
 # shifts skips the <command> parameter
 while [[ $# -gt 1 ]]
@@ -187,11 +188,11 @@ case $key in
     HOMEDIR="$2"
     shift
     ;;
-    -s|--min_jobid)
+    -a|--min_jobid)
     MINJOBID="$2"
     shift
     ;;
-    -e|--max_jobid)
+    -b|--max_jobid)
     MAXJOBID="$2"
     shift
     ;;
@@ -208,6 +209,10 @@ case $key in
     ;;
     -p|--passwordless_ssh)
     KEY_NAME="$2"
+    shift
+    ;;
+    -v|--show_nproc)
+    SHOW_NPROC="$2"
     shift
     ;;
     -u|--user)
@@ -428,7 +433,11 @@ elif [[ $COMMAND = "list" ]]; then
 elif [[ $COMMAND = "nodes" ]]; then
     cluster_data=`aws dynamodb --region ${REGION} get-item --table-name kissc_clusters --key '{"clustername":{"S":"'"${CLUSTERNAME}"'"}}'`
     username=`echo ${cluster_data} | jq -r ".Item.username.S"`
-    aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"'
+    if [[ "$SHOW_NPROC" = "yes" ]];then
+        aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "\(.nproc.S)*'"${username}"'@\(.privateip.S)"'
+    else
+        aws dynamodb --region ${REGION} scan --table-name ${NODESTABLE} | jq -r '.Items[] | "'"${username}"'@\(.privateip.S)"'
+    fi
 elif [[ $COMMAND = "queues" ]]; then
     printf "q_id\tstatus\tjobid\tminjob\tmaxjob        \tS3 result location            \tcommand\n"
     aws dynamodb --region ${REGION} scan --table-name ${QUEUESTABLE} | jq -r '.Items[] | "\(.queueid.N)\t\(.qstatus.S)\t\(.jobid.N)\t\(.minjobid.N)\t\(.maxjobid.N)\t\(.S3_location.S)\t\(.command.S)"'
