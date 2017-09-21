@@ -67,7 +67,7 @@ To see the cluster nodes run:
 ### Submit a job to your cluster
 This submits a "Hello world" bash job onto your cluster that will be executed 100 times. 
 ```bash
-./kissc submit --job_command "bash program.sh" --folder sample_app_bash / --max_jobid 100 myc@us-east-2
+./kissc submit --job_command "bash program.sh" --folder sample_app_bash/ --max_jobid 100 myc@us-east-2
 ```
 
 To see the list of jobs submitted to your cluster and their status run:
@@ -94,7 +94,7 @@ In order to see the list of available KissCluster commands type
 ```
 
 In order to see help for a particular command try 
-```bash
+```
 ./kissc <command> help
 ```
 For example this command:
