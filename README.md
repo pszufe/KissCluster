@@ -8,8 +8,6 @@ The simplest cluster computing solution!
 
 # How to start
 
-## Setting up your AWS cloud 
-
 For quick start let's use AWS Ohio region.
 
 ### Set up your permissions
