@@ -12,7 +12,7 @@ The simplest cluster computing solution!
 
 For quick start let's use AWS Ohio region.
 
-The easiest way to configure your permissions along with the S3 bucket is to [click this AWS Cloud Formation script](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3.us-east-2.amazonaws.com/szufel-public/kissRoleS3.yaml&stackName=kissc) link,
+The easiest way to configure your permissions along with the S3 bucket is to [click this AWS Cloud Formation script](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3.us-east-2.amazonaws.com/szufel-public/kissRoleS3.yaml&stackName=kissc) link while being logged-in to your AWS account. Select the checkbox *I acknowledge that AWS CloudFormation might create IAM resources.*, click *Create*, wait 4 minutes and you are done. 
 
 
 In order to start just type (we assume the current release is 0.0.4):
