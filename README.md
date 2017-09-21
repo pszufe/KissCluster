@@ -86,4 +86,15 @@ Only the information about the cluster in DynamoDB tables is deleted. The nodes 
 - Each process spawned within the cluster will have the jobid number parameter (available as the last parameter appended to command) - you can use this number to adjust work for processes
 - the collected results will contain standard output and standard error of your processes - all gzipped and alligned on S3 bucket - ready for further analysis. 
 
+# Getting help
+
+In order to see the list of available KissCluster commands type 
+```bash
+./kissc
+```
+
+In order to see help for a particular command try `./kissc <command> help`, e.g. `./kissc create help`.
+
+
+
 
