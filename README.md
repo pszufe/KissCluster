@@ -107,6 +107,7 @@ will display a full list of options for cluster creation.
 # FAQ
 
 **What are the software prerequisites?**
+
 Ans:
 ```bash
 sudo apt --yes install jq aqscli
@@ -114,6 +115,7 @@ sudo apt --yes install jq aqscli
 Please note that if those packages are not available KissCluster will try to install them automatically the first time it is run.
 
 **How to configure the amount of workers per cluster node?**
+
 Ans:
 
 In the default configuration there is one worker per one cluster node core. If you want something different have a look inside `config.conf`. The configuration changes need to be made before a cluster is created.
