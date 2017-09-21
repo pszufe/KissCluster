@@ -1,17 +1,29 @@
-# KissCluster
+# Welcome to KissCluster 
 The simplest cluster computing solution!
-- The only no-frills HPC solution with KISS approach - one command to setup the cluster (takes 60 sec to complete)
+- The only no-frills HPC solution with KISS approach - one command to setup the cluster (takes 30 sec to complete)
 - serverless master hosted in AWS - no expenses for hosting your master node (the cluster definition entirely fits into AWS free tier)
-- cross-cloud - mix nodes from various cloud vendors (AWS, Azure /TODO small setup+docs/, Google /TODO small setup+docs/)
-- fully hybrid - mix'n'match on-prem and cloud nodes in your cluster /TODO small setup+docs/
-- scallable - run clusters with hundreds or thousands of nodes
+- cross-cloud - mix nodes from various cloud vendors: AWS, Azure (note: TODO), Google  (note: TODO)
+- fully hybrid - mix'n'match on-prem and cloud nodes in your cluster (note: TODO)
+- scallable - run clusters with hundreds or thousands of nodes - just edit `config.conf` file
+
+# How to start
+
+## Setting up your AWS cloud 
+
+For quick start let's use AWS Ohio region.
+
+The easiest way to configure your permissions along with the S3 bucket is to [click this AWS Cloud Formation script](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3.us-east-2.amazonaws.com/szufel-public/kissRoleS3.yaml&stackName=kissc) link,
 
 
-In order to start just type:
+In order to start just type (we assume the current release is 0.0.4):
 
-`
-git clone https://github.com/pszufe/KissCluster.git
-`
+```bash
+wget -L https://github.com/pszufe/KissCluster/archive/0.0.4.zip
+uznip 0.0.4.zip
+cd KissCluster-0.0.4/
+```
+
+Now you are read
 
 Next, create your cluster. Below is a real-world example - a java app in the folder ./app will packed for distributed HPC execution. The cluster name is PKG and distributed execution enviroment within the cluster is named N100_W50.
 
