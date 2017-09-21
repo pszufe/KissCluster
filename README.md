@@ -48,10 +48,10 @@ cat cloud_init_node_myc.sh
 ```
 
 In order to add node to the cluster on AWS:
-- Select "Launch instance" and choose any Ubuntu image and hardware type that you like
-- Select the IAM role created in the permissions section
+- Select *Launch instance* and choose any Ubuntu image and hardware type that you like
+- Select the IAM role that your previously created (see *Set up your permissions* section)
 - Open *Advanced details* and paste the text from the `cat cloud_init_node_myc.sh` file
-- If using passwordless SSH remember to select the Security Group that you created. 
+- If using passwordless SSH remember to select the Security Group that you previously created (see *Create a AWS SecurityGroup* section). 
 
 ### Check if it works
 To list your clusters and see how many nodes and job queues they have run
