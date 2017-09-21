@@ -1,7 +1,7 @@
 
 AWSTemplateFormatVersion: "2010-09-09"
 Resources: 
-  KissRole: 
+  KisscRole: 
     Type: "AWS::IAM::Role"
     Properties: 
       AssumeRolePolicyDocument: 
@@ -29,6 +29,14 @@ Resources:
                 Resource:
                  - !Join ["", ["arn:aws:s3:::", !Ref data]]
                  - !Join ["", ["arn:aws:s3:::", !Ref data, "/*"]]
+                 
+  KisscInstanceProfile: 
+    Type: "AWS::IAM::InstanceProfile"
+    Properties: 
+      Path: "/"
+      Roles: 
+        - 
+          Ref: "KisscRole"
   data:
     Type: "AWS::S3::Bucket"
 
