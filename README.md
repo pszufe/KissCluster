@@ -15,6 +15,19 @@ For quick start let's use AWS Ohio region.
 
 **Advanced?** [Here](https://raw.githubusercontent.com/pszufe/KissCluster/master/aws/kisscPolicy.json) is the JSON Policy template. You need to create the S3 bucket yourself and edit the bucket name in the policy file. Please note that the S3 bucket should be in the same region where the cluster information is stored (however, the nodes can be anywhere). Once you create the policy: if you use your own machine with `aws configure` command -- assign it to your IAM accout, if you use AWS machine create a Role of type : AWS service - EC2 and attach the role to the instance. 
 
+### Create a AWS SecurityGroup (AWS passwordless-ssh nodes only)
+
+If you need to have a passwordless SSH (required by some cluster types - e.g. [Julia parallel](https://docs.julialang.org/en/latest/manual/parallel-computing) you need to make sure that the network traffic is allowed across all your cluster nodes. On the AWS platform simply create a SecurityGroup (enable the access to it from your computer) and next edit it to enable access to this security group from within itself. See [this picture](https://github.com/pszufe/KissCluster/blob/master/manual/aws_passwordless_ssh.png) for reference.
+
+### Have an Ubuntu Linux instance to execute commands on your cluster 
+
+**Beginner?** 
+Launch a tiny EC2 instance to manage your cluster. you can use any Ubuntu node or maybe you can create any own Ubuntu-based AMI.
+For example here is [my AMI with Julia](https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#LaunchInstanceWizard:ami=ami-aaab89cf).
+
+**Advanced?**
+You can configure cluster management enviroment on your laptop. Just run aws configure and configure your AWS CLI envirment to point to an IAM user created in the *Set up your permissions* section.
+
 ### Install the software
 
 Just joking, there is no install - just download and unzip wherever you like.
@@ -34,10 +47,6 @@ cd KissCluster-0.0.4/
 This command creates a cluster named `myc` in the `us-east-2` AWS region with a passwordless SSH across the nodes (not needed for some cluster configuration, you can skip this option if you do not need it) and the S3 bucket `s3://kissc-data-1qlz7ow7tfqmo/` to store the data (update the bucket name to match your configuration). 
 
 The software will create your cluster. However the cluster has zero nodes and the KissCluster cluster master is serverless - so there is not a single server yet. 
-
-### Create a AWS SecurityGroup (AWS passwordless ssh nodes only)
-
-If you need to have a passwordless SSH (required by some cluster types - e.g. [Julia parallel](https://docs.julialang.org/en/latest/manual/parallel-computing) you need to make sure that the network traffic is allowed across all your cluster nodes. On the AWS platform simply create a SecurityGroup (enable the access to it from your computer) and next edit it to enable access to this security group from within itself. See [this picture](https://github.com/pszufe/KissCluster/blob/master/manual/aws_passwordless_ssh.png) for reference.
 
 ### Add nodes to the cluster
 
