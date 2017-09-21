@@ -93,7 +93,15 @@ In order to see the list of available KissCluster commands type
 ./kissc
 ```
 
-In order to see help for a particular command try `./kissc <command> help`, e.g. `./kissc create help`.
+In order to see help for a particular command try 
+```bash
+./kissc <command> help
+```
+For example this command:
+```bash
+./kissc create help`
+```
+will display a full list of options for cluster creation.
 
 
 
