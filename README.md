@@ -119,7 +119,7 @@ will display a full list of options for cluster creation.
 
 Ans:
 ```bash
-sudo apt --yes install jq aqscli
+sudo apt --yes install jq awscli
 ```
 Please note that if those packages are not available KissCluster will try to install them automatically the first time it is run.
 
