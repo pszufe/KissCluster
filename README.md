@@ -23,7 +23,7 @@ If you need to have a passwordless SSH (required by some cluster types - e.g. [J
 
 **Beginner?** 
 Launch a tiny EC2 instance to manage your cluster. you can use any Ubuntu node or maybe you can create any own Ubuntu-based AMI.
-For example here is [my AMI with Julia](https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#LaunchInstanceWizard:ami=ami-aaab89cf).
+For example here is [a test AMI with Julia](https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#LaunchInstanceWizard:ami=ami-aaab89cf) and here is [a test AMI with NetLogo](https://us-east-2.console.aws.amazon.com/ec2/home?region=us-east-2#LaunchInstanceWizard:ami=ami-ba614cdf).
 
 **Advanced?**
 You can configure cluster management enviroment on your laptop. Just run aws configure and configure your AWS CLI envirment to point to an IAM user created in the *Set up your permissions* section.
@@ -32,21 +32,37 @@ You can configure cluster management enviroment on your laptop. Just run aws con
 
 Just joking, there is no install - just download and unzip wherever you like.
 
-In order to start just type (we assume the current release is 0.0.4):
+In order to start just type (we assume the current release is 0.0.5):
 ```bash
-wget -L https://github.com/pszufe/KissCluster/archive/0.0.4.zip
-uznip 0.0.4.zip
-cd KissCluster-0.0.4/
+wget -L https://github.com/pszufe/KissCluster/archive/0.0.5.zip
+uznip 0.0.5.zip
+cd KissCluster-0.0.5/
 ```
 
 ### Create the cluster 
 \[For all commands we assume that your are in KissCluster's home folder\]
+
+
+## Standard cluster (grid computing)
+This is a typical configuration for grid computing where no direct communication between nodes is required. Examples include launching NetLogo, Java or Python simulation and explorating its parameter space.
+
+```bash 
+./kissc create --s3_bucket s3://kissc-data-1qlz7ow7tfqmo/ myc@us-east-2
+```
+This command creates a cluster named `myc` in the `us-east-2` AWS region and the S3 bucket `s3://kissc-data-1qlz7ow7tfqmo/` to store the data (update the bucket name to match your configuration). 
+
+
+## Passwordless SSH cluster
+
+This is a configuration when you need a passwordless SSH between cluster nodes. This is the way to go if you need the nodes direct acces to each other. A good example is Julia parallel.
+
 ```bash 
 ./kissc create --passwordless_ssh keyname --s3_bucket s3://kissc-data-1qlz7ow7tfqmo/ myc@us-east-2
 ```
-This command creates a cluster named `myc` in the `us-east-2` AWS region with a passwordless SSH across the nodes (not needed for some cluster configuration, you can skip this option if you do not need it) and the S3 bucket `s3://kissc-data-1qlz7ow7tfqmo/` to store the data (update the bucket name to match your configuration). 
+This command creates a cluster named `myc` in the `us-east-2` AWS region with a passwordless SSH across the nodes and the S3 bucket `s3://kissc-data-1qlz7ow7tfqmo/` to store the data (update the bucket name to match your configuration). 
 
-The software will create your cluster. However the cluster has zero nodes and the KissCluster cluster master is serverless - so there is not a single server yet. 
+
+Please note that the above command will create the cluster. However, the cluster has zero nodes and the KissCluster cluster master is serverless - so there is not a single server yet. 
 
 ### Add nodes to the cluster
 
