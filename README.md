@@ -1,10 +1,17 @@
 # Welcome to KissCluster 
+
 The simplest cluster computing solution!
 - The only no-frills HPC solution with KISS approach - one command to setup the cluster (takes 30 sec to complete)
 - serverless master hosted in AWS - no expenses for hosting your master node (the cluster definition entirely fits into AWS free tier)
 - cross-cloud - mix nodes from various cloud vendors: AWS, Azure (note: TODO), Google  (note: TODO)
 - fully hybrid - mix'n'match on-prem and cloud nodes in your cluster (note: TODO)
 - scallable - run clusters with hundreds or thousands of nodes - just edit `config.conf` file
+
+The overall KissCluster architecture is presented below:
+
+![alt text](https://raw.githubusercontent.com/pszufe/KissCluster/master/manual/architecture1.png "KissCluster architecture overview")
+
+
 
 # How to start
 
@@ -145,4 +152,11 @@ Ans:
 
 In the default configuration there is one worker per one cluster node core. If you want something different have a look inside `config.conf`. The configuration changes need to be made before a cluster is created.
 
+**Where is cluster data stored**
+
+Ans:
+
+There is no master node in KissCluster. Instead a DynamoDB database is used. Please see the picture below for data structure reference.
+
+![alt text](https://raw.githubusercontent.com/pszufe/KissCluster/master/manual/architecture2.png "KissCluster data structure overview")
 
