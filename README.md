@@ -10,16 +10,16 @@ The simplest cluster computing solution!
 
 For quick start let's use AWS Ohio region.
 
-### Set up your permissions
+### Step (1) Set up your permissions
 **Beginner?** The easiest way to configure your permissions along with the S3 bucket (the place were you store your cluster information and your computation results) is to [click this AWS Cloud Formation script](https://us-east-2.console.aws.amazon.com/cloudformation/home?region=us-east-2#/stacks/create/review?templateURL=https://s3.us-east-2.amazonaws.com/szufel-public/kissRoleS3.yaml&stackName=kissc) link while being logged-in to your AWS account. Select the checkbox *I acknowledge that AWS CloudFormation might create IAM resources.*, click *Create*, wait 4 minutes and you are done. 
 
 **Advanced?** [Here](https://raw.githubusercontent.com/pszufe/KissCluster/master/aws/kisscPolicy.json) is the JSON Policy template. You need to create the S3 bucket yourself and edit the bucket name in the policy file. Please note that the S3 bucket should be in the same region where the cluster information is stored (however, the nodes can be anywhere). Once you create the policy: if you use your own machine with `aws configure` command -- assign it to your IAM accout, if you use AWS machine create a Role of type : AWS service - EC2 and attach the role to the instance. 
 
-### Create a AWS SecurityGroup (AWS passwordless-ssh nodes only)
+### Step (2) Create a AWS SecurityGroup (AWS passwordless-ssh nodes only)
 
 If you need to have a passwordless SSH (required by some cluster types - e.g. [Julia parallel](https://docs.julialang.org/en/latest/manual/parallel-computing) you need to make sure that the network traffic is allowed across all your cluster nodes. On the AWS platform simply create a SecurityGroup (enable the access to it from your computer) and next edit it to enable access to this security group from within itself. See [this picture](https://github.com/pszufe/KissCluster/blob/master/manual/aws_passwordless_ssh.png) for reference.
 
-### Have an Ubuntu Linux instance to execute commands on your cluster 
+### Step (3) Have an Ubuntu Linux instance to execute commands on your cluster 
 
 **Beginner?** 
 Launch a tiny EC2 instance to manage your cluster. you can use any Ubuntu node or maybe you can create any own Ubuntu-based AMI.
@@ -28,7 +28,7 @@ For example here is [a test AMI with Julia](https://us-east-2.console.aws.amazon
 **Advanced?**
 You can configure cluster management enviroment on your laptop. Just run aws configure and configure your AWS CLI envirment to point to an IAM user created in the *Set up your permissions* section.
 
-### Install the software
+### Step (4) Install the software
 
 Just joking, there is no install - just download and unzip wherever you like.
 
@@ -39,11 +39,11 @@ uznip 0.0.5.zip
 cd KissCluster-0.0.5/
 ```
 
-### Create the cluster 
+### Step (5) Create the cluster 
 \[For all commands we assume that your are in KissCluster's home folder\]
 
 
-## Standard cluster (grid computing)
+#### Standard cluster (grid computing)
 This is a typical configuration for grid computing where no direct communication between nodes is required. Examples include launching NetLogo, Java or Python simulation and explorating its parameter space.
 
 ```bash 
@@ -52,7 +52,7 @@ This is a typical configuration for grid computing where no direct communication
 This command creates a cluster named `myc` in the `us-east-2` AWS region and the S3 bucket `s3://kissc-data-1qlz7ow7tfqmo/` to store the data (update the bucket name to match your configuration). 
 
 
-## Passwordless SSH cluster
+#### Passwordless SSH cluster
 
 This is a configuration when you need a passwordless SSH between cluster nodes. This is the way to go if you need the nodes direct acces to each other. A good example is Julia parallel.
 
@@ -64,7 +64,7 @@ This command creates a cluster named `myc` in the `us-east-2` AWS region with a 
 
 Please note that the above command will create the cluster. However, the cluster has zero nodes and the KissCluster cluster master is serverless - so there is not a single server yet. 
 
-### Add nodes to the cluster
+### Step (6) Add nodes to the cluster
 
 The `kissc create` command has generated `cloud_init_node_myc.sh` file. On whichever machine (that has properly configured AWS permissions) you run it - the machine becomes a cluster node (TODO: tested only as cloud-init script on AWS Ubuntu instances). 
 To see the file contents type:
@@ -78,7 +78,7 @@ In order to add node to the cluster on AWS:
 - Open *Advanced details* and paste the text from the `cat cloud_init_node_myc.sh` file
 - If using passwordless SSH remember to select the Security Group that you previously created (see *Create a AWS SecurityGroup* section). 
 
-### Check if it works
+### Step (7) Check if it works
 To list your clusters and see how many nodes and job queues they have run
 ```bash
  ./kissc list us-east-2
@@ -89,7 +89,7 @@ To see the cluster nodes run:
  ./kissc nodes myc@us-east-2
 ```
 
-### Submit a job to your cluster
+### Step (8) Submit a job to your cluster
 This submits a "Hello world" bash job onto your cluster that will be executed 100 times. 
 ```bash
 ./kissc submit --job_command "bash program.sh" --folder sample_app_bash/ --max_jobid 100 myc@us-east-2
