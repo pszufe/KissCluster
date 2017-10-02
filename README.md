@@ -42,7 +42,7 @@ Just joking, there is no install - just download and unzip wherever you like.
 In order to start just type (we assume the current release is 0.0.5):
 ```bash
 wget -L https://github.com/pszufe/KissCluster/archive/0.0.5.zip
-uznip 0.0.5.zip
+unzip 0.0.5.zip
 cd KissCluster-0.0.5/
 ```
 
