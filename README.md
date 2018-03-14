@@ -152,6 +152,15 @@ Ans:
 
 In the default configuration there is one worker per one cluster node core. If you want something different have a look inside `config.conf`. The configuration changes need to be made before a cluster is created.
 
+**How does KissCluster control user processes**
+
+Ans: please have a look a the picture below
+
+![alt text](https://raw.githubusercontent.com/pszufe/KissCluster/master/manual/kissc_process.png "Controlling worker processes within KissCluster")
+
+
+
+
 **Where is cluster data stored**
 
 Ans:
