@@ -20,6 +20,7 @@ node_data=`aws --region ${REGION} dynamodb get-item --table-name ${NODESTABLE} -
 QUEUE_ID=`echo ${node_data} | jq -r ".Item.currentqueueid.N"`
 if [[ ${QUEUE_ID} == 0 ]];then
    echo "No job queue submitted yet"
+   set +e
    flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
    sleep 30 
    exit 0
@@ -30,6 +31,7 @@ maxjobid=`echo $queue_data  | jq -r ".Item.maxjobid.N"`
 jobid=`echo $queue_data  | jq -r ".Item.jobid.N"`
 if [[ ${jobid} -gt ${maxjobid} ]]; then
     echo "The queue ${QUEUE_ID} is exhausted. Looking for a new one..."
+    set +e
     flock -n /var/lock/kissc${CLUSTERNAME}.lock ${HOMEDIR}/queue_update.sh ${REGION} ${CLUSTERNAME} ${HOMEDIR} ${NODEID}
     sleep 10
     exit 0
